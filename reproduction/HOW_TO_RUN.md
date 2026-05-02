@@ -5,7 +5,7 @@
 Di chuyển vào thư mục:
 
 ```bash
-cd /home/winky/workspace/learning/doan/nt140/reproduction
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
 ```
 
 Chạy:
@@ -24,6 +24,19 @@ Lệnh này sẽ tự:
   - `DT-CTS`
 - chạy mô phỏng `pushback`
 - xuất bảng kết quả, hình, và file tóm tắt
+
+Trên máy hiện tại, đường dẫn dataset thật đang là:
+
+```bash
+/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv
+```
+
+Tuy nhiên trên máy hiện tại file này đang là `Git LFS pointer`, chưa phải CSV đầy đủ. `reproduction/src/data_pipeline.py` hiện đã được sửa để:
+
+- dùng dataset thật nếu đọc được đúng format
+- tự động fallback sang synthetic dataset nếu file chỉ là placeholder hoặc không đúng cột
+
+Điều đó có nghĩa là lần chạy local mặc định trên máy này hiện đang dùng synthetic dataset, trừ khi bạn tải nội dung CSV thật về đầy đủ.
 
 ## 2. Xem kết quả nhanh
 
@@ -76,19 +89,25 @@ Các file còn lại chỉ là module phụ:
 
 ## 5. Nếu muốn chạy bằng Docker
 
-Trong thư mục `reproduction`:
+Di chuyển về root của repo:
 
 ```bash
-docker build -t nt140-sistar-repro .
-docker run --rm -v "$PWD/output:/app/output" nt140-sistar-repro
+cd /home/team/NT140.Q21.ANTN/Final
+docker build -f reproduction/Dockerfile -t nt140-sistar-repro .
+docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sistar-repro
 ```
+
+Cách build này cần thiết vì code trong `src/config.py` còn đọc thêm:
+
+- `SISTAR/model/DT-CTS.py`
+- `datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
 
 ## 6. Dataset đang dùng
 
 Script sẽ ưu tiên file này:
 
 ```bash
-/home/winky/workspace/learning/doan/nt140/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv
+/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv
 ```
 
 Bạn có thể kiểm tra nguồn dataset bằng:

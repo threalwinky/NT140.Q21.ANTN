@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
+from pandas.errors import ParserError
 
 from config import FEATURE_NAMES, REAL_TO_CANONICAL, REAL_WEDNESDAY_CSV
 
@@ -96,5 +97,11 @@ def load_real_wednesday_subset(per_class: int = 2500, seed: int = 42) -> pd.Data
 
 def build_dataset(seed: int = 42) -> Tuple[pd.DataFrame, str]:
     if REAL_WEDNESDAY_CSV.exists():
-        return load_real_wednesday_subset(seed=seed), "CICIDS2017 Wednesday subset from Kaggle"
+        try:
+            return load_real_wednesday_subset(seed=seed), "CICIDS2017 Wednesday subset from Kaggle"
+        except (ValueError, KeyError, ParserError):
+            return (
+                synthesize_flows(seed=seed),
+                "Synthetic DDoS-like flow dataset (local Wednesday CSV is unavailable, incompatible, or only a Git LFS pointer)",
+            )
     return synthesize_flows(seed=seed), "Synthetic DDoS-like flow dataset"

@@ -29,9 +29,11 @@ Instead, the experiment uses a synthetic DDoS-like flow dataset with feature nam
 
 If the file below exists, the script automatically switches to a real dataset run:
 
-- `/home/winky/workspace/learning/doan/nt140/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
+- `/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
 
 This is the preferred mode because it matches the `Wednesday` subset used in the paper discussion for DoS/DDoS behavior.
+
+On the current machine, that path exists but is currently only a `Git LFS` pointer, not the full CSV. The loader now detects incompatible / placeholder files and automatically falls back to the synthetic dataset, so the default local run on this machine uses synthetic data unless you fetch the real CSV contents.
 
 ## Files
 
@@ -53,13 +55,13 @@ This is the preferred mode because it matches the `Wednesday` subset used in the
 Most of the time, run this one file:
 
 ```bash
-cd /home/winky/workspace/learning/doan/nt140/reproduction
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/run_reproduction.py
 ```
 
 That single command will:
 
-- load the dataset
+- load the real dataset if it is usable, otherwise fall back to synthetic data
 - train the models
 - run the pushback simulation
 - write all csv/png/md outputs to `output/`
@@ -67,7 +69,7 @@ That single command will:
 ## Run locally
 
 ```bash
-cd /home/winky/workspace/learning/doan/nt140/reproduction
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/run_reproduction.py
 ```
 
@@ -78,6 +80,12 @@ cat output/summary.md
 column -s, -t < output/classification_metrics.csv
 column -s, -t < output/threshold_metrics.csv
 column -s, -t < output/pushback_metrics.csv
+```
+
+To confirm which dataset source the last run actually used:
+
+```bash
+cat output/dataset_source.txt
 ```
 
 ## Output
@@ -95,7 +103,14 @@ The script writes results to:
 If you want a clean containerized run:
 
 ```bash
-cd /home/winky/workspace/learning/doan/nt140/reproduction
-docker build -t nt140-sistar-repro .
-docker run --rm -v "$PWD/output:/app/output" nt140-sistar-repro
+cd /home/team/NT140.Q21.ANTN/Final
+docker build -f reproduction/Dockerfile -t nt140-sistar-repro .
+docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sistar-repro
 ```
+
+This repo-root build is required because the reproduction code loads:
+
+- `SISTAR/model/DT-CTS.py`
+- `datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
+
+and both paths live outside `reproduction/`.

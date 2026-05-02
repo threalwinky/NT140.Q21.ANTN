@@ -2,9 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY reproduction/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/ ./src/
+COPY reproduction/src/ ./reproduction/src/
+COPY SISTAR/model/ ./SISTAR/model/
+COPY datasets/cicids2017/ ./datasets/cicids2017/
 
-CMD ["python", "src/run_reproduction.py"]
+CMD ["python", "reproduction/src/run_reproduction.py"]

@@ -1,25 +1,25 @@
 # Reduced SISTAR reproduction summary
 
 ## Dataset
-- Source: `CICIDS2017 Wednesday subset from Kaggle`
+- Source: `Synthetic DDoS-like flow dataset (local Wednesday CSV is unavailable, incompatible, or only a Git LFS pointer)`
 
 ## Classification
-- Best F1 in this reduced run: `DT` with `0.9912`
-- `DT-CTS` F1: `0.9646`
-- `DT` F1: `0.9912`
-- `RF` F1: `0.9912`
+- Best F1 in this reduced run: `RF` with `1.0000`
+- `DT-CTS` F1: `0.9983`
+- `DT` F1: `0.9983`
+- `RF` F1: `1.0000`
 
 ## Threshold efficiency
-- `DT` total thresholds: `22`
-- `DT-CTS` total thresholds: `15`
-- Threshold reduction vs DT: `31.82%`
+- `DT` total thresholds: `2`
+- `DT-CTS` total thresholds: `2`
+- Threshold reduction vs DT: `0.00%`
 
 ## Pushback simulation
-- Attack bytes reaching victim without pushback: `1731491`
-- Attack bytes reaching victim with gated pushback: `51302`
-- Attack-byte reduction from the small improvement: `97.04%`
-- Benign bytes preserved with gated pushback: `2020443640`
-- False block events with gated pushback: `3`
+- Attack bytes reaching victim without pushback: `47573670`
+- Attack bytes reaching victim with gated pushback: `2883138`
+- Attack-byte reduction from the small improvement: `93.94%`
+- Benign bytes preserved with gated pushback: `144941321`
+- False block events with gated pushback: `0`
 
 ## Small improvement beyond the paper
 - This reduced reproduction adds `gated_pushback`: only trigger upstream blocking after two consecutive malicious detections.
