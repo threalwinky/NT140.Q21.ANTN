@@ -19,30 +19,29 @@ What is intentionally simplified:
 - No BMv2 / P4 toolchain dependency
 - No exact hardware resource counters
 
-Instead, the experiment uses a synthetic DDoS-like flow dataset with feature names aligned to the paper:
+The preferred dataset path is now the raw Kaggle parquet export:
 
-- `destination_port`
+- Dataset slug: `dhoogla/cicids2017`
+- File used by the reproduction: `DoS-Wednesday-no-metadata.parquet`
+
+The reproduction reads that parquet file directly through `kagglehub`, without converting it into a repo-local CSV. The feature set is aligned to the raw parquet columns:
+
+- `protocol`
 - `init_win_bytes_forward`
 - `fwd_header_length`
 - `packet_length_mean`
 - `flow_packets_persecond`
 
-If the file below exists, the script automatically switches to a real dataset run:
-
-- `/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
-
-This is the preferred mode because it matches the `Wednesday` subset used in the paper discussion for DoS/DDoS behavior.
-
-On the current machine, that path exists but is currently only a `Git LFS` pointer, not the full CSV. The loader now detects incompatible / placeholder files and automatically falls back to the synthetic dataset, so the default local run on this machine uses synthetic data unless you fetch the real CSV contents.
+`Destination Port` is not present in the raw parquet export from this Kaggle dataset, so the reduced reproduction uses `Protocol` instead. If the Kaggle dataset cannot be reached, the script falls back to a synthetic DDoS-like dataset.
 
 ## Files
 
 - `src/run_reproduction.py`
   - Entry point. This is the only file you need to run for the full experiment.
 - `src/config.py`
-  - Paths, feature names, and dataset column mapping.
+  - Dataset slug, feature names, and raw parquet column mapping.
 - `src/data_pipeline.py`
-  - Load the Kaggle CICIDS2017 Wednesday subset or fall back to synthetic data.
+  - Download or reuse the raw Kaggle parquet file, then build the Wednesday subset used in the reproduction.
 - `src/model_pipeline.py`
   - Train `DT`, `RF`, and `DT-CTS`, then compute metrics and threshold counts.
 - `src/pushback_sim.py`
@@ -61,7 +60,7 @@ python3 src/run_reproduction.py
 
 That single command will:
 
-- load the real dataset if it is usable, otherwise fall back to synthetic data
+- download or reuse the raw Kaggle parquet dataset if it is reachable, otherwise fall back to synthetic data
 - train the models
 - run the pushback simulation
 - write all csv/png/md outputs to `output/`
@@ -111,6 +110,9 @@ docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sis
 This repo-root build is required because the reproduction code loads:
 
 - `SISTAR/model/DT-CTS.py`
-- `datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
 
-and both paths live outside `reproduction/`.
+and may download:
+
+- `dhoogla/cicids2017` via `kagglehub`
+
+The container therefore needs network access on first run unless the Kaggle cache already exists.

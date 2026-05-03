@@ -16,8 +16,9 @@ python3 src/run_reproduction.py
 
 Lệnh này sẽ tự:
 
-- đọc dataset `CICIDS2017 Wednesday` nếu file đã có
-- nếu không có thì fallback sang synthetic dataset
+- tải hoặc dùng lại cache của dataset Kaggle `dhoogla/cicids2017`
+- đọc trực tiếp file raw parquet `DoS-Wednesday-no-metadata.parquet`
+- nếu không tải/đọc được thì fallback sang synthetic dataset
 - train 3 mô hình:
   - `DT`
   - `RF`
@@ -25,18 +26,18 @@ Lệnh này sẽ tự:
 - chạy mô phỏng `pushback`
 - xuất bảng kết quả, hình, và file tóm tắt
 
-Trên máy hiện tại, đường dẫn dataset thật đang là:
+Nguồn dataset thật ưu tiên hiện tại là:
 
 ```bash
-/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv
+dhoogla/cicids2017 / DoS-Wednesday-no-metadata.parquet
 ```
 
-Tuy nhiên trên máy hiện tại file này đang là `Git LFS pointer`, chưa phải CSV đầy đủ. `reproduction/src/data_pipeline.py` hiện đã được sửa để:
+`reproduction/src/data_pipeline.py` hiện đã được sửa để:
 
-- dùng dataset thật nếu đọc được đúng format
-- tự động fallback sang synthetic dataset nếu file chỉ là placeholder hoặc không đúng cột
+- dùng raw parquet từ Kaggle thông qua `kagglehub`
+- tự động fallback sang synthetic dataset nếu Kaggle không truy cập được hoặc file không đúng format
 
-Điều đó có nghĩa là lần chạy local mặc định trên máy này hiện đang dùng synthetic dataset, trừ khi bạn tải nội dung CSV thật về đầy đủ.
+Lưu ý: bản parquet raw này không có cột `Destination Port`, nên reproduction dùng `Protocol` thay cho feature đó.
 
 ## 2. Xem kết quả nhanh
 
@@ -100,14 +101,14 @@ docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sis
 Cách build này cần thiết vì code trong `src/config.py` còn đọc thêm:
 
 - `SISTAR/model/DT-CTS.py`
-- `datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv`
+- dataset Kaggle `dhoogla/cicids2017` qua `kagglehub`
 
 ## 6. Dataset đang dùng
 
-Script sẽ ưu tiên file này:
+Script sẽ ưu tiên nguồn này:
 
 ```bash
-/home/team/NT140.Q21.ANTN/Final/datasets/cicids2017/Wednesday-workingHours.pcap_ISCX.csv
+dhoogla/cicids2017 / DoS-Wednesday-no-metadata.parquet
 ```
 
 Bạn có thể kiểm tra nguồn dataset bằng:

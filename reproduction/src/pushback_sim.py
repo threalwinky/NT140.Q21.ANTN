@@ -30,7 +30,7 @@ def generate_pushback_trace(flow_pool_df: pd.DataFrame, seed: int = 7) -> pd.Dat
                 kind = "benign"
                 label = 0
 
-            destination_port = int(sampled["destination_port"])
+            protocol = int(sampled["protocol"])
             init_win = float(sampled["init_win_bytes_forward"])
             fwd_header_length = float(sampled["fwd_header_length"])
             packet_length_mean = float(sampled["packet_length_mean"])
@@ -49,7 +49,7 @@ def generate_pushback_trace(flow_pool_df: pd.DataFrame, seed: int = 7) -> pd.Dat
                     "traffic_type": kind,
                     "label": label,
                     "bytes": byte_scale,
-                    "destination_port": destination_port,
+                    "protocol": protocol,
                     "init_win_bytes_forward": init_win,
                     "fwd_header_length": fwd_header_length,
                     "packet_length_mean": packet_length_mean,
