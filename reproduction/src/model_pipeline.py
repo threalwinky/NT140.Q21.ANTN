@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import time
 from typing import Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -58,7 +60,7 @@ def total_thresholds(threshold_map: Dict[str, List[float]]) -> int:
     return sum(len(v) for v in threshold_map.values())
 
 
-def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, object]]:
+def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, object], np.ndarray, np.ndarray, Dict[str, float], Dict[str, np.ndarray]]:
     X = df[FEATURE_NAMES].to_numpy(dtype=float)
     y = df["label"].to_numpy(dtype=int)
 
@@ -77,10 +79,18 @@ def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
     metrics_rows = []
     threshold_rows = []
     trained = {}
+    training_times = {}
+    y_pred_dict = {}
 
     for name, model in models.items():
+        start_time = time.time()
         model.fit(X_train, y_train)
+        end_time = time.time()
+        training_times[name] = end_time - start_time
+
         y_pred = model.predict(X_test)
+        y_pred_dict[name] = y_pred
+
         metrics_rows.append(
             {
                 "model": name,
@@ -109,4 +119,4 @@ def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
         )
         trained[name] = model
 
-    return pd.DataFrame(metrics_rows), pd.DataFrame(threshold_rows), trained
+    return pd.DataFrame(metrics_rows), pd.DataFrame(threshold_rows), trained, X_test, y_test, training_times, y_pred_dict

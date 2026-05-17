@@ -1,10 +1,20 @@
 import pandas as pd
 
+from benchmark_metrics import aggregate_benchmark_metrics
 from config import OUTPUT
 from data_pipeline import build_dataset
 from model_pipeline import classify_models
 from pushback_sim import generate_pushback_trace, simulate_pushback
-from report_utils import save_bar_plot, save_pushback_plot, save_threshold_plot, write_summary
+from report_utils import (
+    save_bar_plot,
+    save_metric_suite,
+    save_pushback_plot,
+    save_pushback_summary_plot,
+    save_reproduction_dashboard,
+    save_threshold_feature_plot,
+    save_threshold_plot,
+    write_summary,
+)
 
 
 def main():
@@ -12,7 +22,8 @@ def main():
 
     df, dataset_source = build_dataset()
     (OUTPUT / "dataset_source.txt").write_text(dataset_source, encoding="utf-8")
-    metrics_df, threshold_df, trained_models = classify_models(df)
+
+    metrics_df, threshold_df, trained_models, X_test, y_test, training_times, y_pred_dict = classify_models(df)
 
     metrics_df.to_csv(OUTPUT / "classification_metrics.csv", index=False)
     threshold_df.to_csv(OUTPUT / "threshold_metrics.csv", index=False)
@@ -21,9 +32,21 @@ def main():
     if old_dataset.exists():
         old_dataset.unlink()
 
+    # Compute benchmark metrics: latency, FPR, FNR, rules, training time
+    benchmark_df = aggregate_benchmark_metrics(
+        trained_models,
+        X_test,
+        y_test,
+        y_pred_dict,
+        training_times,
+    )
+    benchmark_df.to_csv(OUTPUT / "benchmark_metrics.csv", index=False)
+
     save_bar_plot(metrics_df, "f1", OUTPUT / "classification_f1.png", "F1 comparison")
     save_bar_plot(metrics_df, "accuracy", OUTPUT / "classification_accuracy.png", "Accuracy comparison")
+    save_metric_suite(metrics_df, OUTPUT / "classification_metric_suite.png")
     save_threshold_plot(threshold_df, OUTPUT / "threshold_usage.png")
+    save_threshold_feature_plot(threshold_df, OUTPUT / "thresholds_by_feature.png")
 
     trace_df = generate_pushback_trace(df)
     policy_rows = []
@@ -41,10 +64,20 @@ def main():
     pushback_df.to_csv(OUTPUT / "pushback_metrics.csv", index=False)
     pushback_detail.to_csv(OUTPUT / "pushback_detail.csv", index=False)
     save_pushback_plot(pushback_detail, OUTPUT / "pushback_attack_bytes.png")
+    save_pushback_summary_plot(pushback_df, OUTPUT / "pushback_policy_summary.png")
+    save_reproduction_dashboard(
+        metrics_df,
+        threshold_df,
+        pushback_df,
+        OUTPUT / "reproduction_dashboard.png",
+    )
     write_summary(metrics_df, threshold_df, pushback_df)
 
     print("Classification metrics:")
     print(metrics_df.to_string(index=False))
+    print()
+    print("Benchmark metrics (latency, FPR, FNR, rules, training time):")
+    print(benchmark_df.to_string(index=False))
     print()
     print("Threshold metrics:")
     print(threshold_df.to_string(index=False))

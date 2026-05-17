@@ -25,6 +25,7 @@ Lệnh này sẽ tự:
   - `DT-CTS`
 - chạy mô phỏng `pushback`
 - xuất bảng kết quả, hình, và file tóm tắt
+- tự sinh các biểu đồ so sánh để chèn vào báo cáo
 
 Nguồn dataset thật ưu tiên hiện tại là:
 
@@ -71,8 +72,12 @@ Sau khi chạy xong, các hình nằm ở:
 
 - `output/classification_accuracy.png`
 - `output/classification_f1.png`
+- `output/classification_metric_suite.png`
 - `output/threshold_usage.png`
+- `output/thresholds_by_feature.png`
 - `output/pushback_attack_bytes.png`
+- `output/pushback_policy_summary.png`
+- `output/reproduction_dashboard.png`
 
 ## 4. File nào cần chạy?
 

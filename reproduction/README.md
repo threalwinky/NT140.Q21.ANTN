@@ -48,6 +48,12 @@ The reproduction reads that parquet file directly through `kagglehub`, without c
   - Build the reduced pushback trace and compare pushback policies.
 - `src/report_utils.py`
   - Export plots and the summary markdown.
+- `src/benchmark_metrics.py`
+  - Compute latency, false rates, rule counts, and aggregate benchmark metrics.
+- `src/visualize_benchmarks.py`
+  - Generate benchmark visualization plots from `benchmark_metrics.csv`.
+- `src/multi_dataset_validation.py`
+  - **NEW**: Test DT-CTS generalization across different DDoS attack types and datasets.
 
 ## What should I run?
 
@@ -64,6 +70,7 @@ That single command will:
 - train the models
 - run the pushback simulation
 - write all csv/png/md outputs to `output/`
+- generate report-ready comparison figures automatically
 
 ## Run locally
 
@@ -87,6 +94,60 @@ To confirm which dataset source the last run actually used:
 cat output/dataset_source.txt
 ```
 
+## Multi-Dataset Validation (NEW)
+
+To verify that **DT-CTS generalizes well across different DDoS attack types**, run the multi-dataset validation:
+
+```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/multi_dataset_validation.py
+```
+
+This script trains DT-CTS on **4 different attack scenarios**:
+
+| Dataset | Attack Types | Intensity | Use Case |
+|---------|---|---|---|
+| **CICIDS2017** | DoS (Hulk, Slowloris, GoldenEye) | Moderate | Traditional DoS |
+| **CICIDS2018** | DDoS (HTTP Flood, LOIC, SYN) | Medium-High | Mixed-protocol DDoS |
+| **CIC-DDoS2019** | High-intensity (SYN/UDP/ICMP/DNS) | Very High | Modern network attacks |
+| **CICIoT2023** | IoT Botnet (Mirai variants) | Moderate-High | Distributed IoT attacks |
+
+### Results Interpretation
+
+The script generates: `output/multi_dataset_validation.csv`
+
+**Key Metrics for Each Dataset:**
+- **Accuracy**: Classification correctness across all flows
+- **F1-Score**: Harmonic mean of precision & recall
+- **FPR/FNR**: False positive/negative rates (crucial for real deployments)
+- **Latency**: Inference time in milliseconds (sub-ms = suitable for switches)
+- **Rules**: Number of decision rules (fewer = easier to encode in P4)
+- **Training Time**: Offline training overhead
+
+**Example Output:**
+```
+dataset         accuracy  f1_score   fpr   fnr  latency_ms  n_rules
+CICIDS2017      0.9568    0.9574    5.76%  2.88%  0.001186    14
+CICIDS2018      0.9983    0.9983    0.17%  0.17%  0.001235     8
+CIC-DDoS2019    1.0000    1.0000    0.00%  0.00%  0.000926     2
+CICIoT2023      1.0000    1.0000    0.00%  0.00%  0.001092     2
+```
+
+**Cross-Dataset Insights:**
+- ✅ **Average Accuracy**: 0.9888 (excellent)
+- ✅ **Latency Variance**: All <0.0013ms (stable, switch-friendly)
+- ✅ **Generalization**: σ accuracy = 0.021 (MODERATE stability)
+- ✅ **Conclusion**: DT-CTS works consistently across different attack types
+
+### Why Multi-Dataset Validation Matters
+
+The original paper (SISTAR) was evaluated only on CICIDS2017. This reproduction extends the evaluation to show:
+
+1. **Generalization**: Does DT-CTS work beyond DoS-Wednesday?
+2. **Robustness**: Can it handle SYN floods, UDP floods, HTTP floods, IoT attacks?
+3. **Real-world readiness**: Are metrics stable when attack profiles change?
+4. **Deployment confidence**: Can we trust DT-CTS on unknown attack types?
+
 ## Output
 
 The script writes results to:
@@ -94,8 +155,17 @@ The script writes results to:
 - `output/classification_metrics.csv`
 - `output/threshold_metrics.csv`
 - `output/pushback_metrics.csv`
+- `output/benchmark_metrics.csv`
+- `output/multi_dataset_validation.csv` **(NEW)**
 - `output/summary.md`
-- `output/*.png`
+- `output/classification_accuracy.png`
+- `output/classification_f1.png`
+- `output/classification_metric_suite.png`
+- `output/threshold_usage.png`
+- `output/thresholds_by_feature.png`
+- `output/pushback_attack_bytes.png`
+- `output/pushback_policy_summary.png`
+- `output/reproduction_dashboard.png`
 
 ## Docker
 
