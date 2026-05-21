@@ -1,392 +1,813 @@
-# Master Prompt - Tạo Slide Trình Bày SISTAR Reproduction
+# Master Prompt - Tạo Slide PPTX Báo Cáo SISTAR Reproduction
 
-## Role & Mục Tiêu
-Bạn là một chuyên gia tạo slide trình bày kỹ thuật. Bạn cần tạo một bộ slide trình bày chi tiết về dự án SISTAR Reproduction, **dành cho người chưa bao giờ nghe qua dự án này**. Slide phải có mạch kể chuyện giống hệt file `presentation.md` đã cung cấp, từ mở đầu đến kết luận.
+## Vai trò của agent
 
-## Output Format
-Xuất slide ở định dạng **Markdown**. Mỗi slide cách nhau bằng dòng `---`. Cấu trúc mỗi slide:
-ss
+Bạn là một chuyên gia thiết kế PowerPoint, giảng viên an toàn mạng và người kể chuyện kỹ thuật. Hãy tạo một file `.pptx` báo cáo đồ án bằng tiếng Việt cho project reproduction paper:
+
+**SISTAR: An Efficient DDoS Detection and Mitigation Framework Utilizing Programmable Data Planes**
+
+Slide dùng để báo cáo với thầy/cô trong đồ án môn học. Người nghe có thể chưa biết nhiều về mạng máy tính, DDoS, programmable switch hoặc machine learning, nên nội dung phải dễ hiểu, trực quan và có mạch kể chuyện rõ ràng.
+
+## Mục tiêu chính
+
+Tạo bộ slide giúp người nghe hiểu được:
+
+1. DDoS là gì và vì sao khó chống.
+2. Paper SISTAR giải quyết vấn đề bằng cách đưa phát hiện DDoS vào programmable data plane.
+3. DT, RF, DT-CTS là gì và vì sao DT-CTS phù hợp hơn với switch.
+4. Project này tái hiện rút gọn các ý tưởng chính của SISTAR.
+5. Kết quả reproduction: phân loại, độ phức tạp model, latency, pushback.
+6. Phần cải tiến của project: **gated pushback** giúp giảm false block so với immediate pushback.
+7. Phạm vi và giới hạn: đây là reduced reproduction + improvement, không phải triển khai đầy đủ 100% như paper trên production network.
+
+## Yêu cầu output
+
+Tạo file PowerPoint `.pptx` hoàn chỉnh, gồm khoảng **22-24 slide**.
+
+Mỗi slide phải có:
+
+- Tiêu đề rõ ràng.
+- Nội dung ngắn gọn, không quá nhiều chữ.
+- Visual chính: diagram, chart, timeline, icon hoặc hình minh họa.
+- Speaker notes 3-5 câu để người trình bày biết cần nói gì.
+- Layout đẹp, thống nhất, dễ nhìn.
+
+Nếu công cụ không thể xuất trực tiếp `.pptx`, hãy tạo nội dung theo format dễ chuyển sang PowerPoint, nhưng vẫn phải mô tả đầy đủ layout, visual, speaker notes và asset cần dùng.
+
+## Nguyên tắc quan trọng về nội dung
+
+Không được nói quá phạm vi project.
+
+Dùng cách diễn đạt đúng:
+
+> Project tái hiện các ý tưởng chính của SISTAR ở mức reduced reproduction, gồm ML evaluation, pushback simulation, BMv2/P4 lab và phần cải tiến gated pushback.
+
+Không được viết:
+
+> Project đã implement hoàn toàn SISTAR giống paper trên hệ thống production.
+
+Phải phân biệt rõ:
+
+- **Paper gốc**: SISTAR dùng programmable data plane để phát hiện và giảm thiểu DDoS bằng lightweight ML và pushback.
+- **Project reproduction**: train/evaluate DT, RF, DT-CTS; đo metric; mô phỏng pushback; có BMv2/P4 lab.
+- **Phần cải tiến**: `gated_pushback` chỉ block sau 2 lần malicious liên tiếp để giảm chặn nhầm benign traffic.
+
+## Nguồn nội dung cần đọc trong project
+
+Trước khi tạo slide, hãy đọc các file sau nếu có quyền truy cập:
+
+- `README.md`
+- `paper-summary.md`
+- `presentation.md`
+- `working.md`
+- `reproduction/src/`
+- `reproduction/output/classification_metrics.csv`
+- `reproduction/output/threshold_metrics.csv`
+- `reproduction/output/benchmark_metrics.csv`
+- `reproduction/output/pushback_metrics.csv`
+- `reproduction/output/multi_dataset_validation.csv`
+- `reproduction/output/summary.md`
+- `reproduction/improvement/README.md`
+- `reproduction/improvement/run_gated_improvement.py`
+- `reproduction/improvement/report_utils_improvement.py`
+
+Có thể dùng hình/charts có sẵn nếu tồn tại:
+
+- `reproduction/output/classification_f1.png`
+- `reproduction/output/classification_accuracy.png`
+- `reproduction/output/classification_metric_suite.png`
+- `reproduction/output/threshold_usage.png`
+- `reproduction/output/thresholds_by_feature.png`
+- `reproduction/output/benchmark_latency.png`
+- `reproduction/output/benchmark_false_rates.png`
+- `reproduction/output/benchmark_rules.png`
+- `reproduction/output/pushback_policy_summary.png`
+- `reproduction/output/pushback_attack_bytes.png`
+- `reproduction/output/reproduction_dashboard.png`
+- `reproduction/improvement/output/gated_improvement_dashboard.png`
+- `reproduction/improvement/output/teacher_policy_comparison.png`
+- `reproduction/improvement/output/teacher_attack_timeline.png`
+
+Nếu ảnh không tồn tại, hãy tự dựng chart từ số liệu được cung cấp bên dưới.
+
+## Số liệu chính cần đưa vào slide
+
+### Classification metrics
+
+| Model | Accuracy | F1 |
+|---|---:|---:|
+| DT | 0.9864 | 0.9864 |
+| RF | 0.9712 | 0.9712 |
+| DT-CTS | 0.9568 | 0.9574 |
+
+Thông điệp:
+
+- DT có F1 cao nhất trong reproduction.
+- DT-CTS thấp hơn một chút nhưng nhẹ hơn đáng kể.
+- Với programmable switch, độ gọn của model rất quan trọng.
+
+### Threshold/rule complexity
+
+| Model | Rules | Thresholds |
+|---|---:|---:|
+| DT | 31 | 30 |
+| RF | - | 166 |
+| DT-CTS | 14 | 13 |
+
+Thông điệp:
+
+- DT-CTS giảm mạnh số threshold so với DT/RF.
+- Ít threshold/rule hơn nghĩa là dễ map sang match-action table hơn.
+- Đây là lý do DT-CTS phù hợp hơn cho data plane.
+
+### Latency
+
+- DT mean latency khoảng `0.029 ms`.
+- RF mean latency khoảng `0.246 ms`.
+- DT-CTS mean latency khoảng `0.0012 ms`.
+
+Thông điệp:
+
+- DT-CTS có inference latency rất thấp trong reproduction.
+- Model nhỏ/gọn phù hợp với tư duy xử lý nhanh trong switch.
+
+### Pushback simulation
+
+| Policy | Attack bytes tới victim | Benign bytes giữ lại | False block |
+|---|---:|---:|---:|
+| no_pushback | 2,938,459 | 392,296,909 | 0 |
+| immediate_pushback | 351 | 102,678,554 | 21 |
+| gated_pushback | 64,791 | 305,761,878 | 2 |
+
+Thông điệp:
+
+- `no_pushback`: attack tới victim nhiều nhất.
+- `immediate_pushback`: giảm attack mạnh nhất nhưng false block cao.
+- `gated_pushback`: vẫn giảm attack rất mạnh, nhưng giữ benign traffic tốt hơn và chỉ có 2 false block.
+
+### Gated pushback improvement
+
+Cơ chế:
+
+```text
+Lần 1 bị nghi ngờ malicious  -> ghi nhận, chưa block
+Lần 2 liên tiếp vẫn malicious -> mới block source upstream
 ```
----
-Title: Tiêu đề slide
-Content:
-- Bullet 1 (≤ 12 từ)
-- Bullet 2
-- Bullet 3
-SpeakerNotes: "Kịch bản nói 2-3 câu ngắn gọn, tự nhiên"
-Assets: [file_ảnh_nếu_có.png] hoặc []
-Icon: 🚀 (emoji icon)
-Design: "Brief visual recommendation"
----
+
+Thông điệp trình bày:
+
+> Immediate pushback giống như thấy nghi ngờ là khóa ngay. Gated pushback giống như cần xác nhận thêm một lần để tránh khóa nhầm người dùng bình thường.
+
+## Phong cách thiết kế tổng thể
+
+### Tư duy thiết kế
+
+Ưu tiên **visual-first**:
+
+- 60-70% diện tích slide nên dành cho hình ảnh, diagram, chart hoặc khoảng trắng.
+- 30-40% diện tích còn lại dành cho text ngắn.
+- Không biến slide thành tài liệu đọc.
+- Slide chỉ nên là “gợi ý thị giác”; phần giải thích nằm trong speaker notes.
+
+Mỗi slide nên trả lời một câu hỏi duy nhất, ví dụ:
+
+- DDoS là gì?
+- Vì sao xử lý ở server là muộn?
+- SISTAR đưa detection vào switch như thế nào?
+- DT-CTS giảm độ phức tạp ra sao?
+- Gated pushback cải tiến điểm gì?
+
+### Quy tắc ít chữ
+
+- Mỗi slide tối đa 3-5 bullet.
+- Mỗi bullet tối đa 8-12 từ.
+- Tránh câu dài.
+- Tránh đoạn văn trên slide.
+- Ưu tiên keyword + số liệu + visual.
+- Nếu cần giải thích dài, đưa vào speaker notes.
+
+Ví dụ tốt:
+
+```text
+DT-CTS
+- F1: 0.9574
+- 14 rules
+- 13 thresholds
+- Latency: 0.0012 ms
 ```
 
-## Design & Visual Guidelines
+Ví dụ không tốt:
 
-### Color Scheme (Network-Inspired)
-- **Primary**: Deep Blue (#1E3A5F) - Network nodes, headers, main elements
-- **Secondary**: Cyan/Turquoise (#00BCD4) - Data flow, connections, active links
-- **Accent**: Coral Orange (#FF6B6B) - Attack/warning signals, high-priority alerts
-- **Success**: Soft Green (#4CAF50) - Mitigation success, positive outcomes
-- **Background**: Light Gradient (#F5F7FA to #E8EFF5) - Subtle network pattern or grid
-- **Text**: Dark Gray (#2C3E50) - Body text, high contrast
-- **Text Light**: Gray (#666666) - Secondary text, speaker notes
+```text
+DT-CTS là một mô hình cây quyết định được giới hạn số lượng threshold trên từng feature để giảm độ phức tạp khi triển khai lên programmable switch trong data plane...
+```
 
-### Typography (Vietnamese-Friendly)
-**Font Family Recommendation:**
-- **Tiêu đề**: **Segoe UI** (bold, 28-32px) hoặc **Roboto** (sans-serif, tốt cho Việt)
-- **Bullets**: **Arial Unicode MS** hoặc **Segoe UI** (regular, 16-18px) - hỗ trợ dấu Việt tốt
-- **Speaker notes**: *Tahoma* hoặc *Segoe UI* (italic, 14px)
-- **Code/Technical**: `Consolas` hoặc `Monaco` (monospace, 12-14px)
-- **Backup**: Nếu các font trên không có, dùng **Calibri** (tương thích tốt, có dấu)
+### Bố cục slide đề xuất
 
-**Font Sizing:**
-- H1 (Slide Title): 32px bold, Primary Blue
-- H2 (Section): 24px bold, Primary Blue
-- Bullets: 16px regular, Dark Gray (max 7 bullets per slide)
-- Caption: 12px light, Gray
-- Speaker Notes: 14px italic, Gray
+Dùng các layout sau luân phiên để tránh nhàm chán:
 
-### Visual Elements & Icons (Network-Themed)
-**Slide Icons (mỗi slide có icon riêng ở góc phải 20-24px):**
-- Slide 1: 🚀 | Slide 2: 🛡️ | Slide 3: ⚠️ | Slide 4: ⚙️ | Slide 5: 💡
-- Slide 6: ⚡ | Slide 7: 🌳 | Slide 8: 🔬 | Slide 9: 📊 | Slide 10: 🤖
-- Slide 11: 📈 | Slide 11.5: 🌍 | Slide 12: 📉 | Slide 13: 🔄 | Slide 14: ✅
-- Slide 15: ⭐ | Slide 16: 📋 | Slide 17: 🎯 | Slide 18: ❓ | Slide 19: 📚
+1. **Hero visual slide**
+   - Một hình lớn ở giữa.
+   - 1 câu headline ngắn.
+   - Dùng cho mở đầu, DDoS, conclusion.
 
-### Decorative & Layout Elements
-**Background Patterns:**
-- Network pattern: Subtle lines/nodes in background (opacity 5-10%)
-- Gradient: Top-to-bottom fade from light cyan to white
-- Divider: `═══════════════════` (cyan/primary blue, thin opacity)
-- Side accent: Vertical colored bar on left edge (2-3px, primary blue)
+2. **Two-column comparison**
+   - Trái: cách cũ / vấn đề.
+   - Phải: SISTAR / giải pháp.
+   - Dùng màu đỏ-cam cho vấn đề, xanh cho giải pháp.
 
-**Emphasis & Highlight:**
-- **Key terms**: Bold in Primary Blue #1E3A5F
-- *Important point*: Italics in Coral Orange #FF6B6B
-- `Technical terms`: Monospace with light background #F0F4F8
-- Highlight box: Border Cyan with light fill, rounded corners (8px)
-- Number badge: Circle with number (20x20px) in corner, opacity 60%, Primary Blue
+3. **Pipeline diagram**
+   - Các bước nối bằng mũi tên.
+   - Dùng cho reproduction pipeline, packet processing, pushback.
 
-**Icons & Decorations:**
-- **Bullet points**: Custom network node icon (instead of •)
-- **Arrows**: `→` (right flow), `←` (left flow), `↑` (data up), `↓` (mitigation)
-- **Emphasis**: ★ before important bullet
-- **Connection lines**: Visual flow between concepts using `──` or `│`
-- **Data packets**: Small circle icons 🔹 representing network packets
+4. **Metric card layout**
+   - 3-4 thẻ số liệu lớn.
+   - Mỗi thẻ gồm metric lớn + caption ngắn.
+   - Dùng cho kết quả chính.
 
-### Diagram & Visual Recommendations (Network Architecture Theme)
+5. **Chart-focused slide**
+   - Chart chiếm 70% slide.
+   - Text chỉ là 2-3 insight bên cạnh.
 
-**Slide-by-Slide Visuals:**
-- **Slide 1**: Header with ACM CCS logo + network topology background (subtle grid)
-- **Slide 2**: Flow diagram [🛡️ Attackers] ──→ [📊 Many Requests] ──→ [⚠️ Overloaded Server] (network-style boxes)
-- **Slide 3**: 2-column comparison with divider line: Left (Red/❌ Old Way), Right (Green/✅ SISTAR Way)
-- **Slide 4**: Vertical stack boxes: [Control Plane - top] separated by thick line from [Data Plane - bottom]
-- **Slide 5**: 3 connected boxes with arrows: [🎯 Detection in Switch] ──→ [🤖 Lightweight ML] ──→ [🔄 Pushback Mechanism]
-- **Slide 6**: Balance scale icon with weights on each side (Accuracy ⚖️ Deployability)
-- **Slide 7**: Simple binary tree diagram with colored branches (Blue → Cyan → Green leaves)
-- **Slide 8**: Process flow 3 boxes left-to-right: [#1 ML] ──→ [#2 Compare] ──→ [#3 Simulate] with numbered badges
-- **Slide 9**: Table with 5 feature rows, each with small icon and description
-- **Slide 10**: 3 model comparison boxes with star complexity ratings (⭐ to ⭐⭐⭐)
-- **Slide 11**: Bar chart comparing F1-scores, Primary Blue bars with trend arrow
-- **Slide 11.5**: NEW - Table with 4 datasets and comparison metrics, with "✓ GOOD GENERALIZATION" badge
-- **Slide 12**: Side-by-side comparison: DT (30 thresholds) vs DT-CTS (13 thresholds) with 57% reduction arrow
-- **Slide 13**: Network topology: [🚨 Attacker] ──→ [S1] ──→ [S2] ──→ [👤 Victim], with pushback arrows going back
-- **Slide 14**: Before/After chart showing attack bytes reduction (from tall bar to short bar) with ✅ checkmark
-- **Slide 15**: Sequence timeline: Detection#1 (yellow) ──→ Detection#2 (orange) ──→ Pushback (green)
-- **Slide 16**: Numbered list (①, ②, ③) of limitations with ⚠️ icons on left
-- **Slide 17**: Summary: 3-4 colored boxes with main takeaways and star icons
-- **Slide 18**: Large "Thank You" text centered, with contact info below
-- **Slide 19**: NEW - References section formatted as clean list with links highlighted in cyan
+6. **Timeline / state machine**
+   - Dùng cho gated pushback.
+   - Hiển thị suspicious lần 1, confirm lần 2, block.
 
-### Layout Best Practices (Vietnamese-Optimized)
-- **Title alignment**: Centered for emphasis, left-aligned for body slides
-- **Whitespace**: Generous margins (40-50px sides, 30px top/bottom)
-- **Line height**: 1.6-1.8 for Vietnamese text (better readability with diacritics)
-- **Bullet indentation**: 24px from left edge, sub-bullets +12px further
-- **Network elements**: Visual connectors between related concepts (thin cyan lines)
-- **Color usage**: 60% background, 30% primary color, 10% accent/warning colors
+7. **Architecture diagram**
+   - Dùng cho data plane/control plane, programmable switch, BMv2 lab.
 
-### Animation Suggestions (for PowerPoint/Google Slides)
-- **Fade-in**: Bullets appear one-by-one (0.4s delay between)
-- **Entrance**: Icons slide in from right (0.3s)
-- **Flow arrows**: Animate to show left-to-right data flow (0.5s)
-- **Chart bars**: Grow from bottom-up (0.6s)
-- **Transitions**: Fade between slides (0.5s), no distracting sounds
-- **Emphasis**: Highlight key metrics with glow effect on click
+### Design system
 
-### Vietnamese Text Guidelines
-- ✅ Use proper diacritical marks (à, á, ả, ã, ạ, etc.)
-- ✅ Keep sentences short for better readability (max 15 words per bullet)
-- ✅ Use common terms, avoid overly technical jargon
-- ✅ Numbers: use "2.500" (dot as thousand separator) or "2500"
-- ✅ Percentages: "57%" hoặc "57 phần trăm"
-- ✅ Currencies/metrics: "ms" (milliseconds), "%" (percent), "bytes"
+Màu chính:
 
----
+- Deep Navy `#1E3A5F`: title, header, network nodes.
+- Cyan `#00BCD4`: data flow, arrows, highlight technical concept.
+- Coral `#FF6B6B`: attack, warning, problem.
+- Green `#4CAF50`: mitigation, benign traffic, improvement.
+- Light Background `#F5F7FA`: nền sáng.
+- Dark Text `#2C3E50`: text chính.
+- Muted Gray `#6B7280`: caption, phụ chú.
 
-## Nội Dung Bắt Buộc - 19 Slide Theo Thứ Tự Kịch Bản
+Quy tắc dùng màu:
 
-### **Slide 1: Mở Đầu**
-- Tiêu đề slide
-- Greeting & giới thiệu đề tài
-- Tên paper: SISTAR
-- Câu hỏi trung tâm: "Làm sao phát hiện và giảm thiểu DDoS nhanh hơn, ngay trong mạng?"
-- Speaker notes: "Chào thầy/cô và các bạn. Hôm nay em trình bày project tái hiện rút gọn paper SISTAR. Dự án này nghiên cứu câu hỏi: làm sao phát hiện tấn công DDoS nhanh hơn, ngay trong mạng, thay vì đợi traffic đi tới server rồi mới xử lý?"
-- **Icon**: 🚀
-- **Visual**: Header design với Primary Blue background, logo SISTAR hoặc ACM CCS 2025
-- **Design**: "Opening slide - title prominent, gradient background"
+- Attack/DDoS: đỏ/cam.
+- Benign traffic: xanh lá.
+- SISTAR/data plane: xanh đậm/cyan.
+- Baseline/no pushback: xám hoặc nâu nhạt.
+- Không dùng quá 3 màu nổi trên cùng một slide.
 
-### **Slide 2: DDoS Là Gì?**
-- Giải thích DDoS = Distributed Denial of Service
-- Attacker dùng nhiều nguồn gửi traffic tới cùng một hệ thống
-- Mục tiêu: làm dịch vụ chậm, quá tải, hoặc sập
-- Ví dụ: server xử lý X request/giây, nhưng attacker gửi hàng triệu request/giây
-- Hệ thống chống DDoS cần: phát hiện + chặn
-- Speaker notes: "DDoS viết tắt Distributed Denial of Service. Attacker dùng rất nhiều nguồn gửi traffic tới cùng một hệ thống. Mục tiêu không phải đánh cắp dữ liệu, mà là làm cho dịch vụ bị chậm hoặc sập. Vì vậy, hệ thống chống DDoS cần hai việc: phát hiện traffic nào là tấn công, và chặn hoặc giảm thiểu traffic đó."
-- **Icon**: 🛡️
-- **Visual**: Diagram [Multiple Attackers] → [Many Requests] → [Server Overload]
-- **Design**: "Flow arrows left-to-right, attacker sources top-left with red highlight"
+Font:
 
-### **Slide 3: Vấn Đề của Cách Xử Lý Truyền Thống**
-- Cách cũ: gửi traffic lên server/controller trung tâm để phân tích
-- Vấn đề: phát hiện quá muộn, traffic xấu đã đi qua gần hết mạng
-- Hậu quả: tốn băng thông, gây tải cho switch/router, vẫn áp lực lên server nạn nhân
-- Giải pháp: đưa phát hiện DDoS xuống data plane
-- Speaker notes: "Cách xử lý phổ biến hiện nay là đẩy traffic lên server hoặc controller trung tâm rồi mới phân tích. Nhưng có một vấn đề lớn: khi hệ thống phát hiện ra tấn công, traffic xấu đã đi qua gần hết mạng rồi. Điều đó tốn băng thông và gây tải lên các switch ở giữa. SISTAR giải quyết điều này bằng cách đưa phát hiện DDoS xuống data plane, ngay trong switch."
-- **Icon**: ⚠️
-- **Visual**: Two-column comparison: "Traditional (slow)" vs "SISTAR (fast)"
-- **Design**: "Left side in red/coral for old approach, right side in cyan for new solution"
+- Title: Segoe UI Semibold, Arial, Calibri hoặc Roboto.
+- Body: Segoe UI, Arial hoặc Calibri.
+- Code/technical labels: Consolas hoặc monospace.
+- Font size gợi ý:
+  - Title: 32-40 pt.
+  - Subtitle: 20-24 pt.
+  - Bullet: 18-22 pt.
+  - Caption: 11-13 pt.
+  - Metric number: 36-56 pt.
 
-### **Slide 4: Data Plane và Programmable Switch Là Gì?**
-- Switch: thiết bị chuyển tiếp packet trong mạng
-- Control plane: cấu hình luật, chậm nhưng linh hoạt
-- Data plane: xử lý packet theo luật đã cài sẵn, rất nhanh
-- Programmable data plane: có thể lập trình để thêm logic tùy chỉnh
-- Ví dụ: switch tự đọc thông tin packet, tính đặc trưng, so sánh với luật, quyết định
-- Speaker notes: "Switch là thiết bị chuyển tiếp packet. Nó có hai phần: control plane điều khiển và cấu hình luật; data plane xử lý packet theo luật đã cài sẵn. Bình thường data plane chỉ làm những việc cơ bản. Nhưng với programmable data plane, ta có thể lập trình switch để tự phân tích traffic. Đây là điểm quan trọng của SISTAR."
-- **Icon**: ⚙️
-- **Visual**: Architecture box diagram with two sections: Control Plane (top) vs Data Plane (bottom)
-- **Design**: "Stack boxes vertically, use darker blue for control, lighter cyan for data plane"
+Hiệu ứng thị giác:
 
-### **Slide 5: Ý Tưởng Chính của SISTAR**
-- Ý 1: Phát hiện ngay trong switch, không gửi lên server → phản ứng nhanh
-- Ý 2: Dùng mô hình ML nhẹ (Decision Tree, Random Forest, DT-CTS) → giống luật if-else
-- Ý 3: Pushback - gửi cảnh báo cho switch upstream → chặn gần nguồn hơn
-- Speaker notes: "SISTAR có ba ý chính. Thứ nhất, phát hiện DDoS ngay trong switch, không phải gửi lên server. Thứ hai, dùng mô hình ML nhẹ như Decision Tree, vì nó giống logic if-else và phù hợp với switch. Thứ ba, nếu phát hiện attack thì gửi cảnh báo cho switch ở phía trước để chặn traffic gần nguồn hơn. Đó gọi là pushback."
-- **Icon**: 💡
-- **Visual**: 3 boxes side-by-side with icons and labels
-- **Design**: "Each box has different color: cyan, orange, turquoise; numbered 1, 2, 3"
+- Nền sáng, có thể thêm pattern mạng rất nhẹ 3-5% opacity.
+- Dùng rounded rectangle cho card.
+- Dùng shadow nhẹ, không quá đậm.
+- Dùng line icon đơn giản: server, switch, shield, tree, chart, warning, user.
+- Không dùng quá nhiều emoji.
+- Không dùng clipart rối.
+- Không dùng ảnh nền làm giảm độ đọc.
 
-### **Slide 6: Vấn Đề Kỹ Thuật - Mô Hình Phải Đủ Nhẹ**
-- Switch có tài nguyên rất hạn chế so với server
-- Không thể chạy deep learning lớn hoặc xử lý phức tạp
-- Bài toán không chỉ là: mô hình có chính xác không?
-- Mà còn là: mô hình có đủ nhẹ để triển khai trên switch không?
-- Giải pháp: DT-CTS
-- Speaker notes: "Vấn đề khó của bài toán là switch có tài nguyên rất hạn chế. Nó không giống server có CPU mạnh. Vì vậy, bài toán không chỉ là tìm mô hình chính xác, mà còn phải tìm mô hình đủ nhẹ để triển khai lên switch. Đây là lý do paper đưa ra DT-CTS."
-- **Icon**: ⚡
-- **Visual**: Balance scale diagram with Accuracy on left, Deployability on right
-- **Design**: "Scale tilted showing trade-off, use contrasting colors for each side"
+### UI slide đẹp mắt
 
-### **Slide 7: DT-CTS Là Gì?**
-- DT-CTS = Decision Tree - Constrained Threshold Segmentation
-- Threshold: ngưỡng so sánh (ví dụ: nếu flow_packets_persecond > 500)
-- Cây thường: nhiều threshold → chính xác nhưng nặng
-- DT-CTS: giảm số threshold → gọn hơn, dễ triển khai
-- Trade-off: độ chính xác giảm nhẹ, nhưng mô hình phù hợp với switch
-- Speaker notes: "DT-CTS viết tắt Decision Tree - Constrained Threshold Segmentation. Threshold là các ngưỡng so sánh, ví dụ nếu packets/giây > 500 thì nghi ngờ attack. Cây bình thường thích dùng nhiều threshold để tăng accuracy, nhưng DT-CTS ép mô hình giảm số threshold để gọn hơn. Đổi lại, accuracy có giảm nhẹ, nhưng mô hình phù hợp hơn với switch."
-- **Icon**: 🌳
-- **Visual**: Simple binary tree diagram with if-then-else branches, highlight reduced thresholds
-- **Design**: "Tree nodes in blue, branches in cyan, leaf nodes in green/orange"
+Mỗi slide nên có:
 
-### **Slide 8: Project Của Em Làm Gì?**
-- Không tái hiện trên phần cứng thật (Tofino, BMv2)
-- Reproduction rút gọn tập trung 3 phần chính:
-  1. Phát hiện DDoS bằng mô hình ML
-  2. So sánh số threshold để đánh giá deployability
-  3. Mô phỏng pushback để xem giảm attack bytes tới victim bao nhiêu
-- Speaker notes: "Project này không tái hiện toàn bộ hệ thống trên phần cứng thật. Thay vào đó, project làm một bản reproduction rút gọn, tập trung vào 3 phần: phát hiện DDoS bằng mô hình, so sánh số threshold, và mô phỏng pushback."
-- **Icon**: 🔬
-- **Visual**: 3 boxes in sequence with arrows: [ML Training] → [Comparison] → [Simulation]
-- **Design**: "Numbered badges 1, 2, 3 on top of boxes, arrows show flow left-to-right"
+- Header nhỏ nhất quán: tên section hoặc số slide.
+- Tiêu đề lớn, dễ đọc.
+- Một visual chính rõ ràng.
+- Khoảng trắng đủ rộng.
+- Caption ngắn dưới chart/hình.
+- Highlight số liệu quan trọng bằng metric card hoặc callout.
 
-### **Slide 9: Dataset Dùng Trong Project**
-- Dataset: CICIDS2017, cụ thể là tập DoS-Wednesday
-- Dataset phổ biến để nghiên cứu DDoS detection
-- Feature được trích xuất:
-  - protocol
-  - init_win_bytes_forward
-  - fwd_header_length
-  - packet_length_mean
-  - flow_packets_persecond
-- Ý nghĩa: các đặc trưng này đại diện hành vi traffic
-- Speaker notes: "Project dùng dataset CICIDS2017, cụ thể là tập DoS-Wednesday. Đây là dataset phổ biến để nghiên cứu DDoS. Từ dataset, project lấy 5 feature: protocol, init window bytes, header length, packet length mean, flow packets per second. Các feature này giúp mô hình phân biệt traffic bình thường và attack."
-- **Icon**: 📊
-- **Visual**: Table showing 5 features with brief descriptions or icons
-- **Design**: "Table with alternating row colors (white/light gray), feature names in bold"
+Ví dụ layout đẹp cho slide kết quả:
 
-### **Slide 10: Các Mô Hình Được So Sánh**
-- Decision Tree (DT): baseline đơn giản, dễ hiểu, dễ triển khai
-- Random Forest (RF): chính xác hơn DT, nhưng nặng hơn, khó triển khai
-- DT-CTS: ít threshold hơn DT, cân bằng accuracy và deployability
-- Speaker notes: "Project huấn luyện và so sánh 3 mô hình. Decision Tree là baseline đơn giản. Random Forest thường chính xác hơn nhưng nặng hơn. DT-CTS là mô hình quan trọng nhất, cố giảm threshold để dễ triển khai lên switch."
-- **Icon**: 🤖
-- **Visual**: 3 model boxes with complexity indicators (⭐ to ⭐⭐⭐)
-- **Design**: "Boxes arranged horizontally, each with different accent color and complexity badges"
+```text
++------------------------------------------------+
+| Kết quả Pushback                               |
+|                                                |
+|  [Bar chart lớn: attack bytes by policy]       |
+|                                                |
+|  Insight cards:                                |
+|  [97.8% giảm attack] [2 false blocks]          |
+|                                                |
+|  Caption: Gated cân bằng giữa giảm attack      |
+|  và hạn chế chặn nhầm benign traffic.          |
++------------------------------------------------+
+```
 
-### **Slide 11: Kết Quả Phân Loại**
-- F1-score của mỗi mô hình:
-  - Decision Tree: ~0.9864
-  - Random Forest: ~0.9712
-  - DT-CTS: ~0.9574
-- F1 là chỉ số cân bằng precision và recall
-- DT-CTS F1 thấp hơn một chút, nhưng được thiết kế để giảm chi phí triển khai
-- Speaker notes: "Kết quả F1-score là: Decision Tree 0.9864, Random Forest 0.9712, DT-CTS 0.9574. F1 là chỉ số cân bằng giữa chính xác và đủ bao. Thấy DT-CTS F1 thấp hơn Decision Tree, nhưng đó là do DT-CTS được thiết kế không chỉ tối đa accuracy, mà còn để giảm chi phí triển khai."
-- **Icon**: 📈
-- **Visual**: Bar chart comparing F1-scores across 3 models with trend line
-- **Design**: "Bars in cyan/primary blue, highlight DT-CTS with accent color"
+Ví dụ layout đẹp cho slide gated pushback:
 
-### **Slide 11.5: Tính Tổng Quát Hóa - Multi-Dataset Validation (NEW)**
-- Câu hỏi: DT-CTS có hoạt động trên các loại tấn công khác không?
-- Project test trên 4 datasets khác nhau:
-  - CICIDS2017: DoS (Hulk, Slowloris) - tấn công truyền thống
-  - CICIDS2018: DDoS (HTTP Flood, LOIC) - tấn công đa giao thức
-  - CIC-DDoS2019: SYN/UDP/ICMP Flood - tấn công cường độ rất cao
-  - CICIoT2023: Mirai IoT Botnet - tấn công phân tán từ IoT
-- Kết quả: **Accuracy trung bình 0.9888** - tổng quát hóa tốt!
-- Latency ổn định (~0.001ms) trên tất cả dataset
-- **Icon**: 🌍
-- **Visual**: Table with 4 datasets comparing Accuracy, F1-Score, FPR, FNR, Latency with check marks
-- **Design**: "Table with green checkmarks for good results, highlight GOOD GENERALIZATION badge"
-- Speaker notes: "Một câu hỏi quan trọng là: mô hình DT-CTS có hoạt động tốt trên các loại tấn công khác không? Để kiểm chứng điều này, chúng em test DT-CTS trên 4 datasets khác nhau, bao gồm DoS truyền thống, DDoS HTTP, tấn công cường độ cao, và tấn công IoT botnet. Kết quả cho thấy accuracy trung bình 0.9888, rất ổn định. Latency cũng luôn dưới 0.001ms. Điều này chứng minh DT-CTS tổng quát hóa tốt trên nhiều loại attack khác nhau, không bị overfitting trên CICIDS2017."
+```text
++------------------------------------------------+
+| Cải tiến: Gated Pushback                       |
+|                                                |
+|  Suspicious lần 1  ->  Theo dõi tiếp           |
+|       màu vàng             màu xám             |
+|                                                |
+|  Suspicious lần 2  ->  Block upstream          |
+|       màu cam              màu xanh lá         |
+|                                                |
+|  Callout: giảm false block từ 21 xuống 2       |
++------------------------------------------------+
+```
 
-### **Slide 13: Kết Quả Threshold**
-- Số threshold dùng:
-  - Decision Tree: 30 threshold
-  - DT-CTS: 13 threshold (CIC-DDoS2019) → 14 threshold (CICIDS2017)
-- DT-CTS giảm khoảng 55-57% số threshold so với Decision Tree
-- Ý nghĩa: ít rule → ít tài nguyên bảng match → dễ triển khai trên switch
-- Nhận xét: Số threshold giảm trên các datasets khác nhau, chứng tỏ DT-CTS linh hoạt
-- Speaker notes: "Về số threshold: Decision Tree dùng 30 threshold, nhưng DT-CTS giảm xuống 13-14 tuỳ dataset. Trung bình DT-CTS giảm khoảng 55-57% số threshold. Đây rất quan trọng vì ít threshold hơn nghĩa là ít rule, ít bảng match, dễ triển khai lên switch."
-- **Icon**: 📉
-- **Visual**: Comparison chart: bars for each dataset showing DT vs DT-CTS threshold count, with reduction percentage
-- **Design**: "Grouped bars in cyan and orange, reduction % highlighted with green arrow"
+## Cấu trúc slide đề xuất
 
-### **Slide 14: Pushback Simulation Là Gì?**
-- Mô phỏng mạng đơn giản gồm nhiều hop (3 switches)
-- So sánh 3 chính sách xử lý attack:
-  1. no_pushback: không chặn sớm, attack vẫn tới victim
-  2. immediate_pushback: phát hiện là chặn ngay upstream
-  3. gated_pushback: phải phát hiện 2 lần liên tiếp rồi mới pushback (cân bằng hơn)
-- Mục tiêu: kiểm chứng hiệu quả pushback trong giảm attack traffic
-- Speaker notes: "Phần pushback simulation mô phỏng một mạng đơn giản với 3 switches. Ý tưởng là so sánh các chính sách: không pushback, immediate pushback, và gated pushback. Gated pushback yêu cầu phát hiện 2 lần attack liên tiếp rồi mới pushback, để tránh block nhầm traffic hợp lệ."
-- **Icon**: 🔄
-- **Visual**: Network diagram 3-hop: [🚨 Attacker] ──→ [S1] ──→ [S2] ──→ [👤 Victim] with pushback arrows going back
-- **Design**: "Network nodes as circles/boxes, attack flow red, pushback flow green, topology diagram style"
+### Slide 1 - Title
 
-### **Slide 15: Kết Quả Pushback**
-- Attack bytes tới victim:
-  - Không pushback: **2.9M bytes** ❌
-  - Gated pushback: **65K bytes** ✅
-- **Giảm 97.80% attack traffic!**
-- Benign traffic được giữ: ~305M bytes, chỉ 2 false block events
-- Kết luận: Gated pushback cực hiệu quả, an toàn
-- Speaker notes: "Kết quả cho thấy: không pushback thì attack bytes tới victim là 2.9 triệu. Gated pushback giảm xuống 65 nghìn bytes. Tức là giảm 98% attack traffic. Ngoài ra, hệ thống vẫn giữ được 305 triệu bytes benign traffic và chỉ có 2 lần chặn nhầm. Điều này rất tuyệt vời."
-- **Icon**: ✅
-- **Visual**: Before/After comparison: tall bar (2.9M) → short bar (65K) with 97.8% reduction arrow, benign traffic preserved
-- **Design**: "Before column red/orange, after column green/cyan, reduction % highlighted with star icon"
+Nội dung trên slide:
 
-### **Slide 16: Cải Tiến Nhỏ của Project**
-- Cải tiến: **gated_pushback** thay vì cứ phát hiện là chặn ngay
-- Lý do: nếu mô hình phát hiện sai (false positive), có thể chặn nhầm
-- Gated_pushback: yêu cầu **2 lần phát hiện** malicious liên tiếp → an toàn hơn
-- Kết quả: Giảm false blocks từ 145 xuống 2 ✅
-- Speaker notes: "Ngoài việc tái hiện paper, project có một cải tiến nhỏ là gated_pushback. Thay vì cứ phát hiện attack là chặn ngay, hệ thống yêu cầu phải phát hiện 2 lần malicious liên tiếp rồi mới pushback. Immediate pushback có 145 false block events, nhưng gated pushback chỉ có 2. Điều này giúp an toàn hơn, tránh chặn nhầm traffic hợp lệ."
-- **Icon**: ⭐
-- **Visual**: Sequence timeline: Detection#1 (yellow ⚠️) ──→ Confirm State ──→ Detection#2 (orange 🔔) ──→ Pushback (green ✅)
-- **Design**: "Horizontal timeline with state boxes, false blocks comparison chart below (145 → 2)"
+- SISTAR Reproduction & Gated Pushback Improvement
+- Phát hiện và giảm thiểu DDoS bằng programmable data plane
+- Tên sinh viên/nhóm/lớp
 
-### **Slide 17: Giới Hạn của Project**
-- ① Reproduction rút gọn, không triển khai trên phần cứng thật (Tofino/BMv2)
-- ② Số threshold chỉ là proxy, chưa phải resource thật (TCAM, SRAM)
-- ③ Pushback là mô phỏng đơn giản, không phải mạng thực tế
-- Dù có giới hạn, project vẫn tái hiện được các **ý chính của paper**
-- Speaker notes: "Project có một số giới hạn. Thứ nhất, đây là reproduction rút gọn, không triển khai trên phần cứng thật. Thứ hai, số threshold chỉ là proxy, chưa phải số đo resource thật. Thứ ba, pushback là mô phỏng đơn giản, không phải mạng thực tế. Tuy nhiên, project vẫn tái hiện được các ý chính của paper."
-- **Icon**: 📋
-- **Visual**: Numbered list (①②③) with ⚠️ icons on left, subtle background boxes
-- **Design**: "Left-aligned list with orange warning icons, limitation items in light red boxes"
+Visual:
 
-### **Slide 18: Kết Luận**
-- ★ SISTAR là cách tiếp cận **hiệu quả** cho DDoS
-- ★ Phát hiện trong switch → phản ứng **nhanh** (< 0.001ms)
-- ★ DT-CTS → mô hình **nhẹ nhưng chính xác** (95.68% accuracy)
-- ★ Gated Pushback → giảm **97.8% attack traffic**
-- ★ Trade-off: Accuracy ↔ Deployability → **Cân bằng tốt**
-- Speaker notes: "Kết luận: SISTAR là cách tiếp cận hiệu quả. Thay vì phát hiện ở server, SISTAR phát hiện ngay trong switch để phản ứng nhanh dưới 0.001ms. DT-CTS giúp mô hình đủ nhẹ với 95.68% accuracy. Pushback giúp chặn attack sâu vào mạng. Kết quả project cho thấy DT-CTS giảm 55-57% threshold, gated pushback giảm 97.8% attack bytes. Multi-dataset validation chứng minh DT-CTS tổng quát hóa tốt. Điểm quan trọng nhất là sự cân bằng giữa phát hiện tốt, triển khai nhẹ, và hiệu quả mitigation."
-- **Icon**: 🎯
-- **Visual**: 5 highlight boxes with star icons, each with key metric and emoji
-- **Design**: "Boxes with primary blue header and cyan border, star ★ icons, metric values highlighted"
+- Network topology abstract: nhiều attacker đỏ, switch xanh, victim server.
+- Nền xanh đậm hoặc gradient xanh nhẹ.
 
-### **Slide 19: References & Related Work (NEW)**
-- Bài toán DDoS:
-  - Paxson et al. (2011) - ACM SIGCOMM
-  - Mirkovic & Reiher (2004) - DDoS Taxonomy
-- Mô hình ML:
-  - Breiman (2001) - Random Forests
-  - Buczak & Guven (2016) - ML for Intrusion Detection
-- Programmable Networks:
-  - Bosshart et al. (2014) - **P4 Language**
-  - Intel **Tofino** Switch
-- Datasets:
-  - Sharafaldin et al. (2018) - **CICIDS2017**
-  - CIC-DDoS2019, CICIoT2023
-- Mitigation:
-  - Ioannidis & Bellovin (2002) - **Pushback Mechanism**
-- Speaker notes: "Slide này liệt kê các paper và tài nguyên tham khảo mà chúng em dùng trong project. Bao gồm công trình về DDoS, ML, programmable networks, datasets, và cơ chế mitigation. Các paper này rất quan trọng cho việc viết report cuối kì. Thầy có thể tham khảo thêm từ các công trình này."
-- **Icon**: 📚
-- **Visual**: Clean list format with paper titles and authors in cyan color, links highlighted
-- **Design**: "List format with paper icons 📄, organized by category, bullet points with proper indentation"
+Speaker notes:
 
-### **Slide 20: Câu Kết / Q&A**
-- **Nếu chỉ nhớ một câu:**
-  "SISTAR tái hiện ý tưởng dùng mô hình cây quyết định **nhẹ** để phát hiện DDoS **ngay trong switch**, rồi dùng **pushback** để chặn attack **gần nguồn**, giảm tải cho mạng."
-- Cảm ơn các bạn đã lắng nghe
-- **Sẵn sàng trả lời câu hỏi** ❓
-- Speaker notes: "Nếu chỉ nhớ một câu về project này: SISTAR tái hiện ý tưởng dùng mô hình cây quyết định nhẹ để phát hiện DDoS ngay trong switch, rồi dùng pushback để chặn traffic từ sớm. Kết quả project cho thấy hiệu quả cực tốt: latency < 0.001ms, giảm 98% attack traffic, tổng quát hóa tốt trên 4 attack types khác nhau. Cảm ơn các bạn đã lắng nghe. Em sẵn sàng trả lời các câu hỏi."
-- **Icon**: ❓
-- **Visual**: "Thank You" in large bold text (Primary Blue), with network background pattern, contact placeholder
-- **Design**: "Minimalist centered design, primary blue background gradient, white text, network topology pattern overlay (opacity 5%)"
+- Giới thiệu đề tài và paper SISTAR.
+- Nói rõ đây là reproduction rút gọn kèm cải tiến gated pushback.
+- Dẫn vào câu hỏi: làm sao phát hiện DDoS sớm hơn, ngay trong mạng?
 
----
+### Slide 2 - DDoS là gì?
 
-## Quy Tắc Chất Lượng Bắt Buộc
+Nội dung:
 
-1. **Mỗi slide ≤ 7 bullets, mỗi bullet ≤ 12 từ** (Vietnamese-optimized)
-2. **Speaker notes phải giống kịch bản nói tự nhiên**, không chỉ là bullet nhắc ý (tự nhiên, dễ nghe)
-3. **Không được đảo thứ tự slide** - phải tuân theo kịch bản 20 bước trên
-4. **Mỗi slide phải có heading rõ ràng**, icon, visual recommendation, design notes
-5. **Nội dung phải dễ hiểu cho người chưa biết** - tránh thuật ngữ quá chuyên sâu
-6. **Assets**: nếu có ảnh/figure từ `reproduction/output/`, hãy reference tên file
-7. **Typography**: Dùng font hỗ trợ Việt (Segoe UI, Arial Unicode MS, Roboto)
-8. **Colors**: Tuân theo color scheme (Primary Blue #1E3A5F, Cyan #00BCD4, Coral #FF6B6B)
-9. **Design**: Thêm network-themed background patterns, decorative elements (═, ──, ★, etc.)
-10. **Emphasis**: Dùng **bold** cho key metrics, *italic* cho emphasis, `monospace` cho technical
+- Nhiều nguồn gửi traffic cùng lúc.
+- Server bị quá tải.
+- Người dùng thật không truy cập được.
 
-## Output Expected
-File Markdown có **20 slide** (19 content + 1 thank you), mỗi slide tuân theo format trên, với:
-- Speaker notes là kịch bản nói hoàn chỉnh (tự nhiên, 2-3 câu)
-- Visual recommendations cho từng slide
-- Design guidelines rõ ràng
-- Icon và decorative elements suggestions
-- Network topology & architecture diagrams
-- Data visualizations (charts, tables, flows)
+Visual:
 
-## Cách Gọi Prompt Này
-"Dùng master prompt dưới đây để tạo slide PowerPoint/Keynote Markdown gồm 20 slide theo đúng kịch bản trình bày. Output phải là file Markdown có:
-- Mạch kích bản giống `presentation.md` mở rộng
-- Vietnamese text properly formatted với dấu chính tả
-- Design guidelines chi tiết cho PowerPoint creators
-- Network-themed visual recommendations
-- Metrics & data points từ multi-dataset validation
-- Dễ hiểu cho người chưa biết gì về project
-Slide phải SINH ĐỘNG, CÓ HỌA TIẾT, CÓ BACKGROUND ĐẸP, FONT HỢP TIẾNG VIỆT."
+- Diagram: nhiều attacker -> traffic đỏ -> server nghẽn.
+- Có thể dùng ẩn dụ “kẹt xe trước cổng server”.
+
+Speaker notes:
+
+- Giải thích DDoS bằng ví dụ đời thường.
+- Nhấn mạnh mục tiêu là làm dịch vụ không phục vụ được người dùng thật.
+
+### Slide 3 - Vì sao chống DDoS khó?
+
+Nội dung:
+
+- Traffic đến rất nhanh.
+- Phát hiện ở server là quá muộn.
+- Mạng bị tốn băng thông.
+
+Visual:
+
+- Timeline: attacker -> network -> server -> detection muộn.
+- Đánh dấu “too late” ở gần server.
+
+Speaker notes:
+
+- Giải thích nếu để traffic tới server rồi mới phân tích thì mạng đã chịu tải.
+- Đây là động lực để paper xử lý sớm hơn trong switch.
+
+### Slide 4 - Ý tưởng chính của SISTAR
+
+Nội dung:
+
+- Detect ngay trong switch.
+- Dùng lightweight ML.
+- Pushback để chặn gần nguồn.
+
+Visual:
+
+- 3 card lớn: In-switch detection, Lightweight ML, Pushback.
+- Mũi tên nối 3 card.
+
+Speaker notes:
+
+- SISTAR đưa logic phát hiện xuống data plane.
+- Model phải nhẹ vì switch có tài nguyên hạn chế.
+- Pushback giúp chặn traffic ở upstream switch.
+
+### Slide 5 - Data plane và control plane
+
+Nội dung:
+
+- Control plane: cấu hình, điều khiển.
+- Data plane: xử lý packet cực nhanh.
+- SISTAR xử lý ngay ở data plane.
+
+Visual:
+
+- Diagram 2 tầng: control plane phía trên, data plane phía dưới.
+- Packet chạy qua data plane.
+
+Speaker notes:
+
+- Giải thích switch có phần điều khiển và phần xử lý gói tin.
+- SISTAR tận dụng programmable data plane để xử lý attack sớm.
+
+### Slide 6 - Programmable switch / P4
+
+Nội dung:
+
+- Switch có thể lập trình logic packet.
+- Parser đọc header.
+- Match-action table quyết định forward/drop.
+
+Visual:
+
+- Packet -> Parser -> Feature extraction -> Match-action table -> Forward/Drop.
+
+Speaker notes:
+
+- P4 cho phép mô tả switch xử lý packet như thế nào.
+- Đây là nền tảng để biến model nhẹ thành rule trong switch.
+
+### Slide 7 - Flow và feature
+
+Nội dung:
+
+- Flow = nhóm packet cùng hành vi.
+- Feature mô tả traffic.
+- Model dùng feature để phân loại.
+
+Visual:
+
+- Nhiều packet gom thành một flow card.
+- Từ flow tách ra 5 feature.
+
+Speaker notes:
+
+- Giải thích flow đơn giản là một luồng traffic.
+- Thay vì nhìn từng packet rời rạc, hệ thống nhìn đặc trưng hành vi của flow.
+
+### Slide 8 - Feature trong reproduction
+
+Nội dung:
+
+- protocol
+- init_win_bytes_forward
+- fwd_header_length
+- packet_length_mean
+- flow_packets_persecond
+
+Visual:
+
+- Bảng 5 hàng, mỗi hàng có icon nhỏ và mô tả rất ngắn.
+- Ví dụ: packet rate, kích thước packet, header length.
+
+Speaker notes:
+
+- Đây là 5 feature được dùng trong reproduction.
+- Chúng thể hiện hành vi traffic, ví dụ tốc độ gói tin hoặc kích thước packet.
+
+### Slide 9 - Machine Learning trong SISTAR
+
+Nội dung:
+
+- Input: flow features.
+- Output: benign hoặc attack.
+- Model cần nhỏ và nhanh.
+
+Visual:
+
+- Flow features -> ML model -> benign/attack.
+- Benign màu xanh, attack màu đỏ.
+
+Speaker notes:
+
+- Mục tiêu của model là phân loại traffic.
+- Tuy nhiên trong switch, model không được quá phức tạp.
+
+### Slide 10 - Decision Tree dễ hiểu
+
+Nội dung:
+
+- Giống chuỗi câu hỏi Có/Không.
+- Dễ chuyển thành luật if-else.
+- Phù hợp hơn deep model lớn.
+
+Visual:
+
+- Cây quyết định nhỏ 3-5 node.
+- Lá xanh là benign, lá đỏ là attack.
+
+Speaker notes:
+
+- Decision Tree dễ giải thích vì mỗi node là một điều kiện.
+- Điều này phù hợp với match-action rule trong switch.
+
+### Slide 11 - Vì sao cần DT-CTS?
+
+Nội dung:
+
+- Switch có tài nguyên giới hạn.
+- Nhiều threshold gây tốn rule.
+- DT-CTS giảm số threshold.
+
+Visual:
+
+- Cân bằng Accuracy vs Deployability.
+- Một cây lớn được rút gọn thành cây nhỏ.
+
+Speaker notes:
+
+- Model chính xác nhưng quá lớn có thể không triển khai được.
+- DT-CTS chấp nhận giảm nhẹ accuracy để đổi lấy model gọn hơn.
+
+### Slide 12 - Reproduction pipeline
+
+Nội dung:
+
+- Load dataset.
+- Train DT/RF/DT-CTS.
+- Evaluate + simulate pushback.
+
+Visual:
+
+- Pipeline: Dataset -> Training -> Metrics -> Pushback simulation -> Report.
+
+Speaker notes:
+
+- Slide này mô tả project đã làm gì.
+- Đây là reduced reproduction, tập trung vào ý tưởng chính và số liệu so sánh.
+
+### Slide 13 - Dataset và phạm vi
+
+Nội dung:
+
+- CICIDS2017 DoS-Wednesday.
+- Có synthetic fallback.
+- Reduced reproduction, không phải production.
+
+Visual:
+
+- Dataset card + scope badge.
+- Có nhãn “reduced reproduction”.
+
+Speaker notes:
+
+- Dataset chính là CICIDS2017 nếu có sẵn.
+- Project cũng có fallback synthetic để chạy được trong môi trường thiếu dữ liệu.
+- Cần nói rõ phạm vi để tránh hiểu nhầm là triển khai full như paper.
+
+### Slide 14 - Kết quả phân loại
+
+Nội dung:
+
+- DT F1: 0.9864.
+- RF F1: 0.9712.
+- DT-CTS F1: 0.9574.
+
+Visual:
+
+- Bar chart F1 chiếm phần lớn slide.
+- Callout: “DT-CTS thấp hơn nhẹ nhưng gọn hơn”.
+
+Speaker notes:
+
+- DT đạt F1 cao nhất.
+- DT-CTS giảm nhẹ F1 nhưng mục tiêu của nó là deployability.
+
+### Slide 15 - Độ phức tạp model
+
+Nội dung:
+
+- DT: 31 rules / 30 thresholds.
+- RF: 166 thresholds.
+- DT-CTS: 14 rules / 13 thresholds.
+
+Visual:
+
+- Bar chart threshold count.
+- Mũi tên giảm từ DT sang DT-CTS.
+
+Speaker notes:
+
+- Đây là điểm quan trọng nhất của DT-CTS.
+- Ít threshold hơn giúp dễ đưa logic vào switch hơn.
+
+### Slide 16 - Latency
+
+Nội dung:
+
+- DT: khoảng 0.029 ms.
+- RF: khoảng 0.246 ms.
+- DT-CTS: khoảng 0.0012 ms.
+
+Visual:
+
+- Bar chart latency.
+- DT-CTS được highlight màu xanh lá.
+
+Speaker notes:
+
+- DT-CTS có latency rất thấp trong reproduction.
+- Điều này phù hợp với yêu cầu xử lý nhanh ở data plane.
+
+### Slide 17 - Pushback trong paper
+
+Nội dung:
+
+- Không chỉ drop local.
+- Báo upstream switch.
+- Chặn gần nguồn attack hơn.
+
+Visual:
+
+- Attacker -> switch 1 -> switch 2 -> victim.
+- Pushback arrow đi ngược về upstream.
+
+Speaker notes:
+
+- Pushback là cơ chế khi phát hiện attack thì báo switch phía trước.
+- Mục tiêu là ngăn traffic càng gần nguồn càng tốt.
+
+### Slide 18 - Ba policy pushback
+
+Nội dung:
+
+- no_pushback: không chặn sớm.
+- immediate: phát hiện là chặn ngay.
+- gated: cần xác nhận 2 lần.
+
+Visual:
+
+- 3 card policy đặt cạnh nhau.
+- Mỗi card có icon trạng thái và màu riêng.
+
+Speaker notes:
+
+- Slide này chuẩn bị cho phần so sánh kết quả.
+- Immediate mạnh nhưng có nguy cơ chặn nhầm.
+- Gated thận trọng hơn.
+
+### Slide 19 - Vấn đề của immediate pushback
+
+Nội dung:
+
+- Chặn rất nhanh.
+- Nhưng false positive gây block nhầm.
+- Benign traffic bị ảnh hưởng.
+
+Visual:
+
+- User bình thường bị chặn bởi barrier đỏ.
+- Callout: “false block = chặn nhầm”.
+
+Speaker notes:
+
+- Nếu model dự đoán sai, immediate pushback có thể chặn nguồn hợp lệ.
+- Đây là lý do project đề xuất gated pushback.
+
+### Slide 20 - Cải tiến gated pushback
+
+Nội dung:
+
+- Lần 1: nghi ngờ, chưa block.
+- Lần 2 liên tiếp: mới block.
+- Mục tiêu: giảm false block.
+
+Visual:
+
+- Timeline/state machine lớn:
+  - Normal -> Suspicious -> Confirmed malicious -> Block upstream.
+- Dùng màu vàng, cam, xanh lá.
+
+Speaker notes:
+
+- Gated pushback cần thêm một lần xác nhận.
+- Cách này giống như không khóa tài khoản ngay khi có một dấu hiệu nghi ngờ.
+- Nó làm giảm rủi ro chặn nhầm benign traffic.
+
+### Slide 21 - So sánh pushback
+
+Nội dung:
+
+- no_pushback: attack 2.94M bytes.
+- immediate: false block 21.
+- gated: false block 2, benign giữ tốt hơn.
+
+Visual:
+
+- 3 chart nhỏ hoặc 1 dashboard:
+  - attack bytes tới victim.
+  - benign bytes preserved.
+  - false block events.
+- Nếu có, dùng `pushback_policy_summary.png` hoặc `teacher_policy_comparison.png`.
+
+Speaker notes:
+
+- Immediate giảm attack mạnh nhất nhưng false block cao.
+- Gated vẫn giảm attack rất mạnh và giảm false block từ 21 xuống 2.
+- Gated giữ lại nhiều benign traffic hơn immediate.
+
+### Slide 22 - BMv2/P4 lab
+
+Nội dung:
+
+- Có P4/BMv2 lab minh họa data plane.
+- Topology Mininet 3 switches.
+- Dùng để demo hướng triển khai.
+
+Visual:
+
+- Topology đơn giản: h1/h2 -> s1/s2 -> s3 -> h3.
+- Gắn nhãn attacker, benign host, victim.
+
+Speaker notes:
+
+- Ngoài pipeline Python, project có phần lab BMv2/P4.
+- Lab này giúp minh họa ý tưởng programmable data plane trong môi trường thử nghiệm.
+- Đây vẫn là lab, không phải mạng production thật.
+
+### Slide 23 - Giới hạn
+
+Nội dung:
+
+- Reduced reproduction.
+- Pushback là mô phỏng flow-level.
+- Lab BMv2/Mininet không phải production.
+- Resource thật trên switch chưa đo đầy đủ.
+
+Visual:
+
+- 4 limitation cards, màu xám/cam nhẹ.
+
+Speaker notes:
+
+- Trình bày trung thực giới hạn của project.
+- Tuy vậy project vẫn tái hiện được logic chính của paper và có cải tiến riêng.
+
+### Slide 24 - Kết luận / Q&A
+
+Nội dung:
+
+- SISTAR: detect sớm trong switch.
+- DT-CTS: model gọn, latency thấp.
+- Gated pushback: giảm chặn nhầm.
+- Cảm ơn thầy/cô.
+
+Visual:
+
+- 3 takeaway cards + Q&A.
+- Nền sạch, ít chữ.
+
+Speaker notes:
+
+- Tóm tắt lại 3 ý chính.
+- Nhấn mạnh project vừa reproduction vừa có improvement.
+- Mời thầy/cô đặt câu hỏi.
+
+## Speaker notes requirements
+
+Speaker notes phải:
+
+- Viết bằng tiếng Việt tự nhiên.
+- Không đọc lại y nguyên bullet.
+- Mỗi slide 3-5 câu.
+- Giải thích thuật ngữ khó bằng ví dụ đơn giản.
+- Nhấn mạnh “ý nghĩa” của chart, không chỉ đọc số.
+- Với gated pushback, phải giải thích rõ trade-off giữa giảm attack và tránh chặn nhầm.
+
+Ví dụ speaker note tốt:
+
+```text
+Ở đây, immediate pushback gần như chặn attack ngay lập tức, nên attack bytes tới victim rất thấp. Tuy nhiên, nhược điểm là nếu model dự đoán sai, nguồn benign cũng có thể bị block. Gated pushback chấp nhận để lọt thêm một ít attack ban đầu, nhưng đổi lại giảm false block rất nhiều và giữ benign traffic tốt hơn.
+```
+
+## Checklist chất lượng trước khi xuất file
+
+Trước khi hoàn thành, tự kiểm tra:
+
+- Slide có ít chữ không?
+- Mỗi slide có visual chính chưa?
+- Người không biết mạng có hiểu được không?
+- Có phân biệt paper gốc, reproduction và improvement không?
+- Có nói rõ project là reduced reproduction không?
+- Có đưa đúng số liệu gated pushback không?
+- Gated pushback có được giải thích bằng timeline dễ hiểu không?
+- Chart có caption và insight không?
+- Màu sắc có nhất quán không?
+- Speaker notes có đủ để thuyết trình không?
+
+## Tiêu chí đánh giá bộ slide
+
+Bộ slide đạt yêu cầu nếu:
+
+- Người nghe hiểu DDoS là gì trong 2 phút đầu.
+- Người nghe hiểu vì sao phát hiện trong switch nhanh hơn.
+- Người nghe hiểu DT-CTS giúp model nhỏ/gọn hơn.
+- Người nghe hiểu pushback là chặn gần nguồn attack hơn.
+- Người nghe hiểu gated pushback giảm false block so với immediate pushback.
+- Slide nhìn chuyên nghiệp, hiện đại, ít chữ, nhiều hình.
+- Có đủ số liệu để bảo vệ kết quả khi thầy/cô hỏi.
