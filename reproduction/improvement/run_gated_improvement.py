@@ -14,8 +14,8 @@ OUTPUT = IMPROVEMENT_DIR / "output"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from data_pipeline import build_dataset
 from model_pipeline import classify_models
+from paper_benchmark_3models import load_cicids2017_from_combine
 from pushback_sim import generate_pushback_trace, simulate_pushback
 from report_utils_improvement import (
     save_attack_timeline,
@@ -103,7 +103,7 @@ def write_teacher_summary(dataset_source: str, comparison_df: pd.DataFrame, outp
         "## Mục tiêu",
         "",
         "Thư mục này tách riêng phần cải tiến `gated_pushback` để so sánh rõ với cơ chế pushback gốc/paper-like trong reproduction.",
-        "Tất cả kết quả ở đây được ghi riêng trong `reproduction/improvemen/output`, không ghi đè kết quả gốc ở `reproduction/output`.",
+        "Tất cả kết quả ở đây được ghi riêng trong `reproduction/improvement/output`, không ghi đè kết quả gốc ở `reproduction/output`.",
         "",
         "## Dataset và model",
         "",
@@ -149,7 +149,8 @@ def write_teacher_summary(dataset_source: str, comparison_df: pd.DataFrame, outp
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
-    df, dataset_source = build_dataset()
+    df = load_cicids2017_from_combine()
+    dataset_source = "Loaded CICIDS2017 combine.csv (paper-compatible BENIGN vs Wednesday DoS subset)"
     (OUTPUT / "improvement_dataset_source.txt").write_text(dataset_source, encoding="utf-8")
 
     metrics_df, threshold_df, trained_models, _, _, _, _ = classify_models(df)

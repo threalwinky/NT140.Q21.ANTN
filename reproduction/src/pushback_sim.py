@@ -6,6 +6,22 @@ import numpy as np
 import pandas as pd
 
 from config import FEATURE_NAMES
+from paper_features import sanitize_feature_matrix
+
+
+NON_FEATURE_COLUMNS = {"label", "raw_label", "traffic_type", "window", "source_id", "bytes"}
+
+
+def _feature_columns(frame: pd.DataFrame) -> List[str]:
+    numeric_columns = []
+    for column in frame.columns:
+        if column in NON_FEATURE_COLUMNS:
+            continue
+        if pd.api.types.is_numeric_dtype(frame[column]):
+            numeric_columns.append(column)
+    if numeric_columns:
+        return numeric_columns
+    return [feature for feature in FEATURE_NAMES if feature in frame.columns]
 
 
 def generate_pushback_trace(flow_pool_df: pd.DataFrame, seed: int = 7) -> pd.DataFrame:
@@ -15,6 +31,7 @@ def generate_pushback_trace(flow_pool_df: pd.DataFrame, seed: int = 7) -> pd.Dat
     attack_sources = set(range(0, 8))
     benign_pool = flow_pool_df[flow_pool_df["label"] == 0].reset_index(drop=True)
     attack_pool = flow_pool_df[flow_pool_df["label"] == 1].reset_index(drop=True)
+    feature_columns = _feature_columns(flow_pool_df)
 
     for window in range(60):
         for source_id in range(source_count):
@@ -30,48 +47,50 @@ def generate_pushback_trace(flow_pool_df: pd.DataFrame, seed: int = 7) -> pd.Dat
                 kind = "benign"
                 label = 0
 
-            protocol = int(sampled["protocol"])
-            init_win = float(sampled["init_win_bytes_forward"])
-            fwd_header_length = float(sampled["fwd_header_length"])
-            packet_length_mean = float(sampled["packet_length_mean"])
-            flow_pps = float(sampled["flow_packets_persecond"])
+            packet_length_mean = float(sampled["packet_length_mean"]) if "packet_length_mean" in sampled else 0.0
+            flow_pps = float(sampled["flow_packets_persecond"]) if "flow_packets_persecond" in sampled else 0.0
 
-            if burst and label == 1:
+            if burst and label == 1 and "packet_length_mean" in feature_columns and "flow_packets_persecond" in feature_columns:
                 flow_pps *= 1.35
                 packet_length_mean *= 0.92
 
             byte_scale = float(packet_length_mean * flow_pps * rng.uniform(0.75, 1.10))
 
-            rows.append(
-                {
-                    "window": window,
-                    "source_id": source_id,
-                    "traffic_type": kind,
-                    "label": label,
-                    "bytes": byte_scale,
-                    "protocol": protocol,
-                    "init_win_bytes_forward": init_win,
-                    "fwd_header_length": fwd_header_length,
-                    "packet_length_mean": packet_length_mean,
-                    "flow_packets_persecond": flow_pps,
-                }
-            )
+            feature_values = {feature: sampled[feature] for feature in feature_columns}
+            if "packet_length_mean" in feature_values:
+                feature_values["packet_length_mean"] = packet_length_mean
+            if "flow_packets_persecond" in feature_values:
+                feature_values["flow_packets_persecond"] = flow_pps
+
+            row = {
+                "window": window,
+                "source_id": source_id,
+                "traffic_type": kind,
+                "label": label,
+                "bytes": byte_scale,
+            }
+            row.update(feature_values)
+            rows.append(row)
 
     return pd.DataFrame(rows)
 
 
 def simulate_pushback(model, trace_df: pd.DataFrame, policy: str) -> Tuple[pd.DataFrame, dict]:
+    feature_columns = list(getattr(model, "feature_names", [feature for feature in FEATURE_NAMES if feature in trace_df.columns]))
+    feature_caps = getattr(model, "feature_caps", None)
     blocked_sources = set()
     consecutive_malicious: Dict[int, int] = {}
     false_blocks = 0
     total_block_events = 0
     detail_rows = []
 
-    for _, row in trace_df.iterrows():
+    X_trace, _ = sanitize_feature_matrix(trace_df, feature_columns, caps=feature_caps)
+    predictions = model.predict(X_trace)
+
+    for row_idx, (_, row) in enumerate(trace_df.iterrows()):
         source_id = int(row["source_id"])
         label = int(row["label"])
-        features = row[FEATURE_NAMES].to_numpy(dtype=float).reshape(1, -1)
-        pred = int(model.predict(features)[0])
+        pred = int(predictions[row_idx])
         forwarded = source_id not in blocked_sources
 
         if policy == "no_pushback":

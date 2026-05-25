@@ -28,9 +28,14 @@ SISTAR proposes a new approach to DDoS defense:
    - Pushback simulation
 
 2. **NEW: Multi-Dataset Validation**
-   - Tests DT-CTS on 4 different attack scenarios
-   - Validates generalization across attack types
-   - Proves model stability (σ accuracy = 0.0213)
+   - Tests DT-CTS on 4 attack-profile variants
+   - Adds a lightweight generalization check beyond the main CICIDS2017 run
+   - Reports stability across this reduced setup (σ accuracy = 0.0213)
+
+3. **NEW: Paper-Style 5-Model Benchmark**
+   - Adds `DT`, `DT-CTS`, `RF`, `RF-CTS`, and `XGBoost` benchmark script
+   - Covers the six dataset names used in the SISTAR paper
+   - Uses local real datasets when provided, otherwise deterministic synthetic variants
 
 ---
 
@@ -65,6 +70,20 @@ This tests DT-CTS on 4 attack profiles:
 - CICIoT2023 (IoT botnet attacks)
 
 Generates: `output/multi_dataset_validation.csv`
+
+### Run Full Demo in One File (NEW)
+
+```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/run_full_demo.py
+```
+
+This runs:
+- the core reproduction pipeline
+- the CICIDS2017 paper-style benchmark
+- the multi-dataset validation
+
+Generates the full set of outputs under `output/`
 
 ---
 
@@ -237,13 +256,14 @@ ls -lh *.png
 ## 🎯 Why This Project Matters
 
 ### Original Paper (SISTAR)
-- Only tested on CICIDS2017 DoS-Wednesday
-- Didn't verify generalization
+- Benchmarks multiple model families, including `DT`, `DT-CTS`, `RF`, `RF-CTS`, and `XGBoost`
+- Evaluates across several datasets and model scales
+- Provides the target design that this project reproduces in reduced form
 
 ### This Reproduction + Enhancement
-- **Extended to 4 different attack types**
-- Validates that DT-CTS works beyond the original dataset
-- Proves model is robust for real-world deployment
+- Reproduces the core DT-CTS trade-off on CICIDS2017
+- Adds synthetic attack-profile variants for lightweight generalization checks
+- Adds a 5-model benchmark script aligned with the paper's model set
 - Shows consistent sub-millisecond latency (switch-friendly)
 
 ### Real-World Implications

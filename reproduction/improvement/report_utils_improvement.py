@@ -67,9 +67,9 @@ def save_teacher_policy_comparison(pushback_df: pd.DataFrame, out_path: Path) ->
     labels = _labels(df)
     colors = _colors(df)
     columns = [
-        ("attack_bytes_reaching_victim", "Attack bytes tới victim", "Càng thấp càng tốt"),
-        ("benign_bytes_reaching_victim", "Benign bytes giữ lại", "Càng cao càng tốt"),
-        ("false_block_events", "Số lần chặn nhầm", "Càng thấp càng tốt"),
+        ("attack_bytes_reaching_victim", "Attack bytes reaching victim", "Lower is better"),
+        ("benign_bytes_reaching_victim", "Benign bytes preserved", "Higher is better"),
+        ("false_block_events", "False block events", "Lower is better"),
     ]
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.8))
@@ -82,7 +82,7 @@ def save_teacher_policy_comparison(pushback_df: pd.DataFrame, out_path: Path) ->
         _apply_axis_style(ax)
         _annotate_bars(ax, values)
 
-    fig.suptitle("So sánh pushback gốc và cải tiến gated", fontsize=14, fontweight="bold")
+    fig.suptitle("Original vs gated pushback comparison", fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
@@ -104,7 +104,7 @@ def save_attack_timeline(pushback_detail: pd.DataFrame, out_path: Path) -> None:
             linewidth=3 if policy == "gated_pushback" else 2,
         )
 
-    ax.set_title("Attack bytes tới victim theo thời gian", fontsize=13, fontweight="bold")
+    ax.set_title("Attack bytes reaching victim over time", fontsize=13, fontweight="bold")
     ax.set_xlabel("Time window")
     ax.set_ylabel("Attack bytes")
     ax.ticklabel_format(style="plain", axis="y")
@@ -124,14 +124,14 @@ def save_improvement_dashboard(pushback_df: pd.DataFrame, comparison_df: pd.Data
 
     attack_values = df["attack_bytes_reaching_victim"].astype(float).tolist()
     axes[0, 0].bar(labels, attack_values, color=colors, width=0.65)
-    axes[0, 0].set_title("Attack bytes tới victim", fontweight="bold")
+    axes[0, 0].set_title("Attack bytes reaching victim", fontweight="bold")
     axes[0, 0].ticklabel_format(style="plain", axis="y")
     _apply_axis_style(axes[0, 0])
     _annotate_bars(axes[0, 0], attack_values)
 
     benign_values = df["benign_bytes_reaching_victim"].astype(float).tolist()
     axes[0, 1].bar(labels, benign_values, color=colors, width=0.65)
-    axes[0, 1].set_title("Benign bytes được giữ lại", fontweight="bold")
+    axes[0, 1].set_title("Benign bytes preserved", fontweight="bold")
     axes[0, 1].ticklabel_format(style="plain", axis="y")
     _apply_axis_style(axes[0, 1])
     _annotate_bars(axes[0, 1], benign_values)
@@ -145,13 +145,13 @@ def save_improvement_dashboard(pushback_df: pd.DataFrame, comparison_df: pd.Data
     gated_row = comparison_df[comparison_df["policy"] == "gated_pushback"].iloc[0]
     immediate_row = comparison_df[comparison_df["policy"] == "immediate_pushback"].iloc[0]
     conclusion = (
-        "Kết luận chính\n\n"
-        "Original/immediate pushback chặn ngay sau 1 lần phát hiện malicious, "
-        "nên giảm attack rất mạnh nhưng dễ chặn nhầm benign.\n\n"
-        "Gated pushback chỉ chặn sau 2 lần malicious liên tiếp. "
-        f"Trong run này, gated vẫn giảm {gated_row['attack_byte_reduction_vs_no_pushback_pct']:.2f}% attack bytes "
-        "so với no pushback, đồng thời giữ lại nhiều benign traffic hơn immediate.\n\n"
-        f"False block: immediate = {int(immediate_row['false_block_events'])}, "
+        "Key conclusion\n\n"
+        "Original/immediate pushback blocks a source after a single malicious prediction, "
+        "so it suppresses attack traffic aggressively but can easily block benign traffic by mistake.\n\n"
+        "Gated pushback blocks only after two consecutive malicious predictions. "
+        f"In this run, gated still reduced attack bytes by {gated_row['attack_byte_reduction_vs_no_pushback_pct']:.2f}% "
+        "versus no pushback, while preserving more benign traffic than immediate pushback.\n\n"
+        f"False blocks: immediate = {int(immediate_row['false_block_events'])}, "
         f"gated = {int(gated_row['false_block_events'])}."
     )
     axes[1, 1].axis("off")

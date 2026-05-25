@@ -1,9 +1,12 @@
 import numpy as np
 
 class DecisionTreeClassifier:
-    def __init__(self, max_depth=None, min_samples_split=2):
+    def __init__(self, max_depth=None, min_samples_split=2, max_candidate_thresholds=256, max_thresholds_per_feature=3):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
+        self.max_candidate_thresholds = max_candidate_thresholds
+        # How many thresholds a single feature may contribute across the whole tree
+        self.max_thresholds_per_feature = int(max_thresholds_per_feature)
         self.tree = None
         self.feature_thresholds = {}  # Record used thresholds for each feature
 
@@ -59,8 +62,8 @@ class DecisionTreeClassifier:
         best_feature, best_threshold = None, None
 
         for feature in range(X.shape[1]):
-            # Skip features that have already used 3 thresholds
-            if len(self.feature_thresholds.get(feature, set())) >= 3:
+            # Skip features that have already used their allowed number of thresholds
+            if len(self.feature_thresholds.get(feature, set())) >= self.max_thresholds_per_feature:
                 continue
 
             # Generate candidate thresholds and filter out used ones
@@ -81,10 +84,17 @@ class DecisionTreeClassifier:
         return best_feature, best_threshold
 
     def _generate_candidate_thresholds(self, feature_values):
-        # For numerical features: generate midpoints between sorted unique values
+        # For numerical features: generate midpoints between sorted unique values.
+        # To keep training tractable on very large datasets, bound the number of
+        # candidate thresholds by downsampling unique values uniformly.
         sorted_values = np.unique(np.sort(feature_values))
         if len(sorted_values) < 2:
             return []
+        if self.max_candidate_thresholds is not None:
+            max_points = int(self.max_candidate_thresholds) + 1
+            if len(sorted_values) > max_points:
+                idx = np.linspace(0, len(sorted_values) - 1, num=max_points, dtype=int)
+                sorted_values = sorted_values[idx]
         thresholds = [(sorted_values[i-1] + sorted_values[i]) / 2
                       for i in range(1, len(sorted_values))]
         return thresholds
@@ -110,6 +120,10 @@ class DecisionTreeClassifier:
     def _create_leaf_node(self, y):
         # Create a leaf node (return the majority class)
         classes, counts = np.unique(y, return_counts=True)
+        # If there is a tie in class counts, prefer the attack class (1) to reduce false-negatives
+        if len(counts) > 1 and counts[0] == counts[1]:
+            # return attack class (1) when tied
+            return {'class': 1}
         return {'class': classes[np.argmax(counts)]}
 
     def predict(self, X):

@@ -13,7 +13,12 @@ from sklearn.metrics import confusion_matrix
 from config import FEATURE_NAMES
 
 
-def measure_inference_latency(model, X_test: np.ndarray, n_warmup: int = 10) -> Dict[str, float]:
+def measure_inference_latency(
+    model,
+    X_test: np.ndarray,
+    n_warmup: int = 3,
+    batch_size: int = 8192,
+) -> Dict[str, float]:
     """
     Measure inference latency per sample.
 
@@ -21,20 +26,30 @@ def measure_inference_latency(model, X_test: np.ndarray, n_warmup: int = 10) -> 
         model: Trained model with .predict() method
         X_test: Test features (N, num_features)
         n_warmup: Number of warmup iterations to exclude from timing
+        batch_size: Batch size used to cover the full test set
 
     Returns:
         Dict with: mean_latency_ms, p50_latency_ms, p95_latency_ms, p99_latency_ms
     """
-    # Warmup
+    if len(X_test) == 0:
+        return {
+            "mean_latency_ms": 0.0,
+            "p50_latency_ms": 0.0,
+            "p95_latency_ms": 0.0,
+            "p99_latency_ms": 0.0,
+        }
+
     for _ in range(n_warmup):
-        _ = model.predict(X_test[:1])
+        _ = model.predict(X_test[: min(batch_size, len(X_test))])
 
     latencies = []
-    for sample in X_test:
+    for start_idx in range(0, len(X_test), batch_size):
+        batch = X_test[start_idx : start_idx + batch_size]
         start = time.perf_counter()
-        _ = model.predict(sample.reshape(1, -1))
+        _ = model.predict(batch)
         end = time.perf_counter()
-        latencies.append((end - start) * 1000)  # convert to ms
+        per_sample_ms = ((end - start) * 1000) / max(len(batch), 1)
+        latencies.extend([per_sample_ms] * len(batch))
 
     latencies = np.array(latencies)
 

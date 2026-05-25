@@ -1,15 +1,8 @@
 """
-Multi-Dataset Validation: Test DT-CTS generalization across different DDoS attack types.
+Legacy benchmark helper for the current `combine.csv` + `data_benchmark.csv` workflow.
 
-This script trains and evaluates DT-CTS on multiple datasets to verify the model's
-generalization capability across different attack scenarios (SYN Flood, UDP Flood,
-HTTP Flood, etc.).
-
-Datasets:
-1. CICIDS2017 (DoS-Wednesday)
-2. CICIDS2018 (synthetic variant - DDoS-Tuesday)
-3. CIC-DDoS2019 (synthetic variant - high-intensity)
-4. CICIoT2023 (synthetic variant - IoT botnet)
+This module remains as a compatibility entrypoint, but the active demo now trains on
+the full `combine.csv` dataset and evaluates the generated `data_benchmark.csv` file.
 """
 
 from __future__ import annotations
@@ -32,6 +25,7 @@ from benchmark_metrics import (
 )
 from config import FEATURE_NAMES, SISTAR_MODEL
 from data_pipeline import build_dataset, synthesize_flows
+from paper_benchmark_3models import load_cicids2017_from_combine
 
 OUTPUT = Path(__file__).parent.parent / "output"
 
@@ -46,135 +40,12 @@ def load_repo_dt_cts():
     return module.DecisionTreeClassifier
 
 
-def generate_dataset_variant(
-    dataset_name: str,
-    n_benign: int = 2400,
-    n_attack: int = 2400,
-    seed: int = 42,
-) -> pd.DataFrame:
+def generate_dataset_variant(*args, **kwargs) -> pd.DataFrame:
+    """Compatibility shim.
+
+    The current workflow no longer uses legacy synthetic dataset variants.
     """
-    Generate synthetic dataset variant for different attack scenarios.
-
-    Args:
-        dataset_name: One of ['CICIDS2017', 'CICIDS2018', 'CIC-DDoS2019', 'CICIoT2023']
-        n_benign: Number of benign flows
-        n_attack: Number of attack flows
-        seed: Random seed for reproducibility
-
-    Returns:
-        DataFrame with features and labels
-    """
-    rng = np.random.default_rng(seed)
-
-    # Benign traffic - common baseline
-    benign_protocol = rng.choice([6, 17], size=n_benign, p=[0.8, 0.2])
-    benign_win = np.clip(rng.normal(22000, 9000, n_benign), 1024, 65535)
-    benign_hdr = np.clip(rng.normal(420, 120, n_benign), 60, 1600)
-    benign_pkt_mean = np.clip(rng.normal(820, 220, n_benign), 64, 1500)
-    benign_pps = np.clip(rng.normal(180, 85, n_benign), 5, 700)
-
-    benign = pd.DataFrame(
-        {
-            "protocol": benign_protocol.astype(int),
-            "init_win_bytes_forward": benign_win.astype(float),
-            "fwd_header_length": benign_hdr.astype(float),
-            "packet_length_mean": benign_pkt_mean.astype(float),
-            "flow_packets_persecond": benign_pps.astype(float),
-            "label": 0,
-            "attack_type": "benign",
-        }
-    )
-
-    # Attack traffic - varies by dataset
-    if dataset_name == "CICIDS2017":
-        # DoS attacks: Hulk, Slowloris, GoldenEye - moderate intensity
-        attack_kind = rng.choice(["hulk", "slowloris", "golden"], size=n_attack, p=[0.4, 0.3, 0.3])
-        intensity_multiplier = 1.0
-
-    elif dataset_name == "CICIDS2018":
-        # DDoS attacks: HTTP Flood, LOIC - medium intensity, mixed protocols
-        attack_kind = rng.choice(["http_flood", "loic", "syn"], size=n_attack, p=[0.4, 0.35, 0.25])
-        intensity_multiplier = 1.2
-
-    elif dataset_name == "CIC-DDoS2019":
-        # High-intensity: SYN Flood, UDP Flood, ICMP Flood, DNS amplification
-        attack_kind = rng.choice(
-            ["syn_flood", "udp_flood", "icmp_flood", "dns_amp"],
-            size=n_attack,
-            p=[0.3, 0.25, 0.25, 0.2],
-        )
-        intensity_multiplier = 1.8  # Higher intensity attacks
-
-    elif dataset_name == "CICIoT2023":
-        # IoT botnet DDoS: Mirai variants, distributed
-        attack_kind = rng.choice(["mirai_syn", "mirai_udp", "mirai_http"], size=n_attack, p=[0.4, 0.35, 0.25])
-        intensity_multiplier = 1.5  # Moderate-high, distributed
-
-    else:
-        raise ValueError(f"Unknown dataset_name: {dataset_name}")
-
-    # Generate attack traffic with varying characteristics
-    attack_protocol = np.empty(n_attack)
-    attack_win = np.empty(n_attack)
-    attack_hdr = np.empty(n_attack)
-    attack_pkt_mean = np.empty(n_attack)
-    attack_pps = np.empty(n_attack)
-
-    for i, kind in enumerate(attack_kind):
-        if kind in ["hulk", "syn_flood", "mirai_syn"]:
-            # SYN-like attacks: small window, high packet rate
-            attack_protocol[i] = 6
-            attack_win[i] = np.clip(rng.normal(256, 128, 1)[0], 0, 4096)
-            attack_hdr[i] = np.clip(rng.normal(72, 18, 1)[0], 40, 180)
-            attack_pkt_mean[i] = np.clip(rng.normal(88, 25, 1)[0], 40, 250)
-            attack_pps[i] = np.clip(rng.normal(1500 * intensity_multiplier, 320, 1)[0], 250, 4000)
-
-        elif kind in ["udp_flood", "loic", "mirai_udp"]:
-            # UDP-like attacks: UDP protocol, moderate window, high rate
-            attack_protocol[i] = 17
-            attack_win[i] = np.clip(rng.normal(2048, 1024, 1)[0], 0, 8192)
-            attack_hdr[i] = np.clip(rng.normal(110, 35, 1)[0], 40, 400)
-            attack_pkt_mean[i] = np.clip(rng.normal(180, 50, 1)[0], 60, 400)
-            attack_pps[i] = np.clip(rng.normal(1250 * intensity_multiplier, 280, 1)[0], 250, 3500)
-
-        elif kind in ["http_flood", "mirai_http"]:
-            # HTTP-like attacks: TCP, larger packets, application-level
-            attack_protocol[i] = 6
-            attack_win[i] = np.clip(rng.normal(512, 256, 1)[0], 0, 4096)
-            attack_hdr[i] = np.clip(rng.normal(150, 40, 1)[0], 60, 500)
-            attack_pkt_mean[i] = np.clip(rng.normal(320, 80, 1)[0], 80, 700)
-            attack_pps[i] = np.clip(rng.normal(900 * intensity_multiplier, 200, 1)[0], 150, 2500)
-
-        elif kind in ["slowloris", "golden"]:
-            # Slowloris/GoldenEye: persistent, lower rate, longer duration
-            attack_protocol[i] = 6
-            attack_win[i] = np.clip(rng.normal(512, 200, 1)[0], 0, 4096)
-            attack_hdr[i] = np.clip(rng.normal(140, 35, 1)[0], 60, 450)
-            attack_pkt_mean[i] = np.clip(rng.normal(280, 70, 1)[0], 80, 600)
-            attack_pps[i] = np.clip(rng.normal(450 * intensity_multiplier, 150, 1)[0], 100, 1500)
-
-        elif kind in ["icmp_flood", "dns_amp"]:
-            # ICMP/DNS: high volume, small packets
-            attack_protocol[i] = 17 if kind == "dns_amp" else 1
-            attack_win[i] = np.clip(rng.normal(2048, 1024, 1)[0], 0, 8192)
-            attack_hdr[i] = np.clip(rng.normal(85, 25, 1)[0], 40, 300)
-            attack_pkt_mean[i] = np.clip(rng.normal(120, 40, 1)[0], 40, 300)
-            attack_pps[i] = np.clip(rng.normal(2000 * intensity_multiplier, 400, 1)[0], 500, 6000)
-
-    attack = pd.DataFrame(
-        {
-            "protocol": attack_protocol.astype(int),
-            "init_win_bytes_forward": attack_win.astype(float),
-            "fwd_header_length": attack_hdr.astype(float),
-            "packet_length_mean": attack_pkt_mean.astype(float),
-            "flow_packets_persecond": attack_pps.astype(float),
-            "label": 1,
-            "attack_type": attack_kind,
-        }
-    )
-
-    df = pd.concat([benign, attack], ignore_index=True)
-    return df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
+    raise RuntimeError("Legacy dataset variants are not part of the current workflow")
 
 
 def train_and_evaluate_dataset(
@@ -248,38 +119,22 @@ def train_and_evaluate_dataset(
 
 
 def run_multi_dataset_validation():
-    """Run multi-dataset validation across different attack scenarios."""
+    """Run benchmark validation on the generated `data_benchmark.csv` file."""
     print("\n" + "=" * 70)
-    print("🌍 MULTI-DATASET VALIDATION: DT-CTS Generalization Test")
+    print("🌍 BENCHMARK VALIDATION: DT-CTS on data_benchmark.csv")
     print("=" * 70)
 
-    datasets = [
-        "CICIDS2017",
-        "CICIDS2018",
-        "CIC-DDoS2019",
-        "CICIoT2023",
-    ]
+    data_benchmark_path = OUTPUT / "data_benchmark.csv"
+    if data_benchmark_path.exists():
+        df = pd.read_csv(data_benchmark_path)
+        source = "Generated data_benchmark.csv"
+    else:
+        df = load_cicids2017_from_combine()
+        source = "combine.csv"
 
-    results = []
-
-    # Process each dataset
-    for dataset_name in datasets:
-        # Try to load real dataset, fall back to synthetic
-        if dataset_name == "CICIDS2017":
-            try:
-                df, source = pd.read_csv(OUTPUT / "dataset_used.csv"), "Real Kaggle CICIDS2017 (if available)"
-                if len(df) == 0:
-                    raise ValueError("Empty dataset")
-            except Exception:
-                df = generate_dataset_variant(dataset_name, n_benign=2400, n_attack=2400, seed=42)
-                source = "Synthetic variant (DoS attacks)"
-        else:
-            df = generate_dataset_variant(dataset_name, n_benign=2400, n_attack=2400, seed=42)
-            source = f"Synthetic variant ({dataset_name} attack profile)"
-
-        metrics = train_and_evaluate_dataset(dataset_name, df)
-        metrics["source"] = source
-        results.append(metrics)
+    metrics = train_and_evaluate_dataset("DATA_BENCHMARK", df)
+    metrics["source"] = source
+    results = [metrics]
 
     # Create results DataFrame
     results_df = pd.DataFrame(results)
@@ -290,7 +145,7 @@ def run_multi_dataset_validation():
 
     # Print summary table
     print("\n" + "=" * 70)
-    print("📊 SUMMARY: Multi-Dataset Validation Results")
+    print("📊 SUMMARY: Benchmark Validation Results")
     print("=" * 70)
 
     summary_cols = [
@@ -324,7 +179,7 @@ def run_multi_dataset_validation():
     max_fpr = results_df["fpr"].max() * 100
     max_fnr = results_df["fnr"].max() * 100
 
-    print(f"\n📈 Cross-Dataset Performance:")
+    print(f"\n📈 Benchmark Performance:")
     print(f"   Average Accuracy: {avg_accuracy:.4f}")
     print(f"   Average F1-Score: {avg_f1:.4f}")
     print(f"   Average Latency: {avg_latency:.6f} ms")
@@ -341,8 +196,8 @@ def run_multi_dataset_validation():
     print(f"\n🏆 Best Performance: {best_dataset} ({results_df['accuracy'].max():.4f})")
     print(f"📉 Lowest Performance: {worst_dataset} ({results_df['accuracy'].min():.4f})")
 
-    print(f"\n✅ DT-CTS shows {'GOOD' if std_accuracy < 0.02 else 'MODERATE' if std_accuracy < 0.05 else 'VARIABLE'} generalization")
-    print(f"   across different attack types and datasets.")
+    print(f"\n✅ DT-CTS benchmark variance is {'LOW' if std_accuracy < 0.02 else 'MODERATE' if std_accuracy < 0.05 else 'HIGH'}")
+    print(f"   on the current generated benchmark set.")
 
     print("\n" + "=" * 70 + "\n")
 

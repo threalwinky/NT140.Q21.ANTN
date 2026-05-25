@@ -5,7 +5,7 @@ Thư mục này chứa riêng phần cải tiến `gated_pushback` để so sán
 Kết quả ở đây không ghi đè thư mục `../output` của reproduction gốc. Tất cả output được ghi vào:
 
 ```text
-reproduction/improvemen/output
+reproduction/improvement/output
 ```
 
 ## Ý tưởng chính
@@ -26,13 +26,13 @@ Mục tiêu là giảm false block và giữ benign traffic tốt hơn, trong kh
 Từ project root:
 
 ```bash
-python3 reproduction/improvemen/run_gated_improvement.py
+python3 reproduction/improvement/run_gated_improvement.py
 ```
 
 Hoặc từ thư mục này:
 
 ```bash
-cd reproduction/improvemen
+cd reproduction/improvement
 python3 run_gated_improvement.py
 ```
 

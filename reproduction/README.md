@@ -50,33 +50,41 @@ The reproduction reads that parquet file directly through `kagglehub`, without c
   - Export plots and the summary markdown.
 - `src/benchmark_metrics.py`
   - Compute latency, false rates, rule counts, and aggregate benchmark metrics.
-- `src/visualize_benchmarks.py`
-  - Generate benchmark visualization plots from `benchmark_metrics.csv`.
 - `src/multi_dataset_validation.py`
-  - **NEW**: Test DT-CTS generalization across different DDoS attack types and datasets.
+  - Compatibility helper that validates DT-CTS on the generated benchmark CSV.
+- `src/paper_benchmark_3models.py`
+  - Single-file benchmark with `DT`, `RF`, `DT-CTS` for feature sets 3/5/7 and bar-chart output.
 
 ## What should I run?
 
-Most of the time, run this one file:
+If you want the full demo in one command, run this file:
+
+```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/run_full_demo.py
+```
+
+That single command will:
+
+- run the core reproduction pipeline
+  - split `combine.csv` into 75% train and 25% benchmark
+  - train `DT`, `RF`, and `DT-CTS` on the 75% split
+  - benchmark on the 20% hold-out split
+- write all csv/png/md outputs to `output/`
+- generate report-ready comparison figures automatically
+
+If you only want the core reproduction pipeline, run:
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/run_reproduction.py
 ```
 
-That single command will:
-
-- download or reuse the raw Kaggle parquet dataset if it is reachable, otherwise fall back to synthetic data
-- train the models
-- run the pushback simulation
-- write all csv/png/md outputs to `output/`
-- generate report-ready comparison figures automatically
-
 ## Run locally
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
-python3 src/run_reproduction.py
+python3 src/run_full_demo.py
 ```
 
 If you only want to inspect results from the last run:
@@ -94,59 +102,40 @@ To confirm which dataset source the last run actually used:
 cat output/dataset_source.txt
 ```
 
-## Multi-Dataset Validation (NEW)
+## Benchmark Validation
 
-To verify that **DT-CTS generalizes well across different DDoS attack types**, run the multi-dataset validation:
+The repository keeps `src/multi_dataset_validation.py` only as a compatibility helper. The active benchmark flow now uses a 75/25 stratified split of `combine.csv` and evaluates `DT`, `RF`, and `DT-CTS` on the 25% hold-out set.
+
+If you want to rerun the benchmark validation directly, use:
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/multi_dataset_validation.py
 ```
 
-This script trains DT-CTS on **4 different attack scenarios**:
+## Data Benchmark 3-Model Benchmark
 
-| Dataset | Attack Types | Intensity | Use Case |
-|---------|---|---|---|
-| **CICIDS2017** | DoS (Hulk, Slowloris, GoldenEye) | Moderate | Traditional DoS |
-| **CICIDS2018** | DDoS (HTTP Flood, LOIC, SYN) | Medium-High | Mixed-protocol DDoS |
-| **CIC-DDoS2019** | High-intensity (SYN/UDP/ICMP/DNS) | Very High | Modern network attacks |
-| **CICIoT2023** | IoT Botnet (Mirai variants) | Moderate-High | Distributed IoT attacks |
+Run:
 
-### Results Interpretation
-
-The script generates: `output/multi_dataset_validation.csv`
-
-**Key Metrics for Each Dataset:**
-- **Accuracy**: Classification correctness across all flows
-- **F1-Score**: Harmonic mean of precision & recall
-- **FPR/FNR**: False positive/negative rates (crucial for real deployments)
-- **Latency**: Inference time in milliseconds (sub-ms = suitable for switches)
-- **Rules**: Number of decision rules (fewer = easier to encode in P4)
-- **Training Time**: Offline training overhead
-
-**Example Output:**
-```
-dataset         accuracy  f1_score   fpr   fnr  latency_ms  n_rules
-CICIDS2017      0.9568    0.9574    5.76%  2.88%  0.001186    14
-CICIDS2018      0.9983    0.9983    0.17%  0.17%  0.001235     8
-CIC-DDoS2019    1.0000    1.0000    0.00%  0.00%  0.000926     2
-CICIoT2023      1.0000    1.0000    0.00%  0.00%  0.001092     2
+```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/paper_benchmark_3models.py
 ```
 
-**Cross-Dataset Insights:**
-- ✅ **Average Accuracy**: 0.9888 (excellent)
-- ✅ **Latency Variance**: All <0.0013ms (stable, switch-friendly)
-- ✅ **Generalization**: σ accuracy = 0.021 (MODERATE stability)
-- ✅ **Conclusion**: DT-CTS works consistently across different attack types
+This single script benchmarks the 20% hold-out split of `combine.csv` using three model families:
 
-### Why Multi-Dataset Validation Matters
+- `DT`
+- `RF`
+- `DT-CTS`
 
-The original paper (SISTAR) was evaluated only on CICIDS2017. This reproduction extends the evaluation to show:
+For each model, it evaluates feature-set sizes `3`, `5`, and `7`, then exports both CSV results and bar charts.
 
-1. **Generalization**: Does DT-CTS work beyond DoS-Wednesday?
-2. **Robustness**: Can it handle SYN floods, UDP floods, HTTP floods, IoT attacks?
-3. **Real-world readiness**: Are metrics stable when attack profiles change?
-4. **Deployment confidence**: Can we trust DT-CTS on unknown attack types?
+Outputs:
+
+```text
+output/benchmark_combine_75_25_dt_rf_dtcts.csv
+output/benchmark_combine_75_25_dt_rf_dtcts.png
+```
 
 ## Output
 
@@ -156,7 +145,7 @@ The script writes results to:
 - `output/threshold_metrics.csv`
 - `output/pushback_metrics.csv`
 - `output/benchmark_metrics.csv`
-- `output/multi_dataset_validation.csv` **(NEW)**
+ - `output/benchmark_combine_75_25_dt_rf_dtcts.csv` **(NEW)**
 - `output/summary.md`
 - `output/classification_accuracy.png`
 - `output/classification_f1.png`
