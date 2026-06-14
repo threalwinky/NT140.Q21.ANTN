@@ -2,7 +2,7 @@
 % LLNCS macro package for Springer Computer Science proceedings;
 % Version 2.21 of 2022/01/12
 %
-\documentclass[runningheads]{llncs}
+\documentclass{llncs}
 
 % ========================
 % Vietnamese support
@@ -18,7 +18,17 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{subcaption}
+\usepackage{placeins}
 \usepackage[font=small,labelfont=bf]{caption}
+\graphicspath{{figures/}}
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\renewcommand{\arraystretch}{1.12}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.8}
 % Used for displaying figures. This sample uses an inline placeholder box
 % so the document can compile even when no external image file is present.
 %
@@ -31,28 +41,23 @@
 %
 \begin{document}
 %
-\title{Tái hiện SISTAR và cải tiến cơ chế pushback phân cấp cho giảm thiểu DDoS trong programmable data plane}
+\title{SISTAR: An Efficient DDoS Detection and Mitigation Framework Utilizing Programmable Data Planes}
 %
-%\titlerunning{Abbreviated paper title}
-% If the paper title is too long for the running head, you can set
-% an abbreviated paper title here
 %
 \author{Đặng Minh Tú\inst{1,2}\and
 Võ Quang Vũ\inst{1,2} \and
 Nghi Hoàng Khoa\inst{1,2}}
 %
-\authorrunning{Dang Minh Tu et al.}
-% First names are abbreviated in the running head.
-% If there are more than two authors, 'et al.' is used.
 %
 \institute{Khoa Mạng máy tính và Truyền thông \and
 Trường Đại học Công nghệ Thông tin, ĐHQG-HCM
 \email{\{24520033,24522045\}@gm.uit.edu.vn} \email{khoanh@uit.edu.vn}}
 %
 \maketitle              % typeset the header of the contribution
+\pagestyle{plain}
 %
 \begin{abstract}
-Báo cáo này trình bày quá trình tái hiện rút gọn ý tưởng của SISTAR, một hướng tiếp cận phát hiện và giảm thiểu tấn công DDoS bằng mô hình học máy nhẹ có thể đưa xuống programmable data plane. Thay vì dịch lại bài báo gốc, nhóm xây dựng một quy trình thực nghiệm bằng Python để đánh giá ba mô hình DT, RF và DT-CTS trên tập CICIDS2017 đã được chuẩn hóa, đồng thời dùng số lượng threshold như một chỉ báo thực tế cho chi phí triển khai trên switch. Bên cạnh phần tái hiện, báo cáo còn đề xuất một cơ chế giảm thiểu mới mang tên hierarchical confidence-aware pushback. Cơ chế này kết hợp edge detector, core detector và suspicion score để hệ thống phản ứng theo nhiều mức, từ theo dõi cho tới chặn hoàn toàn khi bằng chứng đã đủ mạnh. Kết quả thực nghiệm cho thấy DT-CTS vẫn giữ chất lượng phân loại ở mức cạnh tranh trong khi giảm đáng kể số threshold so với DT thường. Đồng thời, cơ chế pushback mới gần như loại bỏ toàn bộ attack bytes tới victim mà vẫn tránh được false block trong mô phỏng, tốt hơn cách block ngay sau một lần phát hiện malicious.
+Bài viết này trình bày một nghiên cứu tái hiện rút gọn ý tưởng của SISTAR, một khuôn khổ phát hiện và giảm thiểu tấn công DDoS dựa trên các mô hình học máy nhẹ có khả năng triển khai trong programmable data plane. Thay vì lặp lại nội dung của bài báo gốc, nghiên cứu tập trung xây dựng một quy trình thực nghiệm bằng Python để đánh giá ba mô hình DT, RF và DT-CTS trên tập CICIDS2017 đã được chuẩn hóa, đồng thời sử dụng số lượng threshold như một đại diện cho chi phí triển khai trên switch. Trên cơ sở đó, nghiên cứu đề xuất thêm một cơ chế giảm thiểu mới mang tên hierarchical confidence-aware pushback. Cơ chế này kết hợp edge detector, core detector và suspicion score để điều phối phản ứng theo nhiều mức, từ giám sát tới chặn hoàn toàn khi bằng chứng đã đủ mạnh. Kết quả thực nghiệm cho thấy DT-CTS vẫn duy trì chất lượng phân loại cạnh tranh trong khi giảm đáng kể số threshold so với DT thông thường. Đồng thời, cơ chế pushback đề xuất giúp suy giảm gần như toàn bộ attack bytes tới victim mà vẫn tránh được false block trong mô phỏng, qua đó cho thấy hiệu quả tốt hơn so với chiến lược block ngay sau một lần phát hiện malicious.
 
 \keywords{DDoS detection \and programmable data plane \and DT-CTS \and pushback \and CICIDS2017}
 \end{abstract}
@@ -68,8 +73,10 @@ Báo cáo này trình bày quá trình tái hiện rút gọn ý tưởng của 
 
 
 \begin{credits}
-\subsubsection{Source code/Dataset} Source code and experiment outputs are taken from the accompanying course project repository. The main dataset view used in the report is the paper-compatible BENIGN vs Wednesday DoS subset built from CICIDS2017.
+\subsubsection{Source code/Dataset} Source code and experiment outputs are taken from the accompanying project repository. The main dataset view used in this study is the paper-compatible BENIGN vs Wednesday DoS subset derived from CICIDS2017.
 \end{credits}
+\FloatBarrier
+\clearpage
 %
 % ---- Bibliography ----
 %

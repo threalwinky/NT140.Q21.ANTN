@@ -1,18 +1,31 @@
 \section{Giới thiệu}
 
-Các hệ thống chống DDoS hiện nay thường phải đánh đổi giữa hai mục tiêu: phát hiện đủ chính xác và phản ứng đủ sớm. Những hướng tiếp cận dựa hoàn toàn vào máy chủ phân tích tập trung có ưu điểm là linh hoạt, nhưng tới lúc hệ thống kết luận được đó là attack thì traffic xấu đã đi qua phần lớn mạng. Ngược lại, nếu muốn đưa logic phát hiện xuống switch hoặc data plane, mô hình phải đủ nhỏ, đủ đơn giản và có thể biểu diễn bằng các điều kiện so sánh ngưỡng \cite{bosshart2014p4,breiman2001random}.
+Các hệ thống phòng thủ DDoS hiện nay thường phải đánh đổi giữa hai mục tiêu: độ chính xác trong phát hiện và tốc độ phản ứng trong vận hành. Những hướng tiếp cận dựa hoàn toàn vào máy chủ phân tích tập trung có ưu điểm là linh hoạt, nhưng tại thời điểm hệ thống có thể kết luận một nguồn lưu lượng là độc hại thì phần lớn traffic tấn công đã đi qua mạng. Theo chiều ngược lại, nếu logic phát hiện được đưa xuống switch hoặc data plane, mô hình phải đủ gọn, đủ đơn giản và có thể biểu diễn dưới dạng các điều kiện so sánh ngưỡng \cite{bosshart2014p4,breiman2001random}.
 
-SISTAR là một hướng tiếp cận đáng chú ý vì dùng các mô hình cây quyết định, đặc biệt là DT-CTS, để thu hẹp khoảng cách giữa học máy và programmable data plane. Về bản chất, DT-CTS chủ động khống chế số lượng threshold trên mỗi feature để mô hình dễ ánh xạ thành rule và thanh ghi trên switch hơn so với cây quyết định thông thường. Trong project này, nhóm xem số lượng threshold như một chỉ báo thực dụng cho độ phức tạp triển khai.
+SISTAR là một hướng tiếp cận đáng chú ý vì sử dụng các mô hình cây quyết định, đặc biệt là DT-CTS, để thu hẹp khoảng cách giữa học máy và programmable data plane. Về bản chất, DT-CTS chủ động khống chế số lượng threshold trên mỗi feature nhằm tạo điều kiện thuận lợi hơn cho việc ánh xạ mô hình thành rule và thanh ghi trên switch so với cây quyết định thông thường. Trong nghiên cứu này, số lượng threshold được sử dụng như một chỉ báo thực dụng cho độ phức tạp triển khai.
 
-Tuy nhiên, một hệ thống chỉ phát hiện tốt là chưa đủ. Nếu cơ chế giảm thiểu được triển khai quá mạnh tay, chẳng hạn block ngay sau một lần dự đoán malicious, hệ thống có thể cắt attack rất nhanh nhưng cũng dễ chặn nhầm benign traffic. Đây là điều không mong muốn trong môi trường thật, nơi những burst hợp lệ hoặc các đợt tăng traffic ngắn hạn vẫn có thể xuất hiện.
+Tuy nhiên, một hệ thống chỉ phát hiện tốt là chưa đủ. Nếu cơ chế giảm thiểu được triển khai quá quyết liệt, chẳng hạn block ngay sau một lần dự đoán malicious, hệ thống có thể suy giảm attack traffic rất nhanh nhưng đồng thời cũng làm tăng nguy cơ chặn nhầm benign traffic. Đây là điều không mong muốn trong môi trường thực tế, nơi những burst hợp lệ hoặc các đợt tăng lưu lượng ngắn hạn vẫn có thể xuất hiện.
 
-Từ quan sát đó, báo cáo không chỉ tái hiện phần phân loại của SISTAR mà còn mở rộng sang cách điều phối giảm thiểu. Nhóm xây dựng một cơ chế mới tên là hierarchical confidence-aware pushback, trong đó quyết định chặn không dựa vào một dự đoán đơn lẻ mà dựa trên bằng chứng được tích lũy từ nhiều detector theo thời gian. Nhờ vậy, phản ứng của hệ thống trở nên có mức độ hơn, thay vì chỉ có hai trạng thái là cho qua hoặc block ngay.
+\subsection{Kiến trúc SISTAR và động lực cải tiến}
 
-\subsection{Đóng góp của báo cáo}
+Từ những quan sát trên, nghiên cứu không chỉ tái hiện phần phân loại của SISTAR mà còn mở rộng sang cơ chế điều phối giảm thiểu. Một policy mới mang tên hierarchical confidence-aware pushback được xây dựng, trong đó quyết định chặn không dựa trên một dự đoán đơn lẻ mà dựa trên bằng chứng được tích lũy từ nhiều detector theo thời gian. Cách tiếp cận này cho phép hệ thống phản ứng theo nhiều mức độ, thay vì chỉ có hai trạng thái là cho qua hoặc block ngay.
 
-Đóng góp chính của báo cáo có thể tóm tắt như sau:
+Trước khi trình bày chi tiết quy trình tái hiện, cần nhìn lại kiến trúc hệ thống của SISTAR để làm rõ bối cảnh mà phần cải tiến được xây dựng trên đó.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.88\textwidth]{image.png}
+\caption{Sơ đồ hệ thống SISTAR theo kiến trúc gốc: phát hiện được đưa vào trong mạng và kết hợp với cơ chế pushback để chặn lưu lượng sớm hơn ở phía upstream.}
+\label{fig:sistar-system}
+\end{figure}
+
+Hình~\ref{fig:sistar-system} thể hiện tinh thần cốt lõi của SISTAR: switch không chỉ thực hiện chức năng chuyển tiếp mà còn tham gia vào phát hiện và phối hợp giảm thiểu. Khi một vùng mạng phát hiện lưu lượng đáng nghi, hành động lọc không nhất thiết phải chờ tới victim mà có thể được đẩy ngược lên upstream switch để giảm tải sớm hơn trên toàn tuyến.
+
+\subsection{Đóng góp của nghiên cứu}
+
+Đóng góp chính của nghiên cứu có thể tóm tắt như sau:
 \begin{enumerate}
 \item Xây dựng lại một pipeline thực nghiệm gọn, bám theo tinh thần của SISTAR trên tập CICIDS2017 với ba mô hình DT, RF và DT-CTS, kèm các chỉ số accuracy, F1 và threshold count.
 \item Đề xuất cơ chế hierarchical confidence-aware pushback gồm edge detector, core detector và suspicion score để hệ thống leo thang phản ứng qua các mức monitor, local rate-limit, upstream pushback và hard block.
-\item Chỉ ra bằng thực nghiệm rằng cơ chế cải tiến này tạo được cân bằng tốt hơn giữa giảm attack traffic và hạn chế false block so với immediate pushback trong cùng một môi trường mô phỏng.
+\item Chứng minh bằng thực nghiệm rằng cơ chế cải tiến này tạo được cân bằng tốt hơn giữa suy giảm attack traffic và hạn chế false block so với immediate pushback trong cùng một môi trường mô phỏng.
 \end{enumerate}

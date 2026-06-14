@@ -1,17 +1,19 @@
 \section{Các nghiên cứu liên quan}
 
-Các công trình liên quan đến đề tài này có thể chia thành ba nhóm chính: phát hiện DDoS bằng học máy trên flow, triển khai logic xử lý trong programmable data plane, và các cơ chế pushback nhằm chặn lưu lượng càng gần nguồn càng tốt.
+Các công trình liên quan đến đề tài này có thể chia thành ba nhóm chính: phát hiện DDoS bằng học máy trên dữ liệu flow, triển khai logic xử lý trong programmable data plane, và các cơ chế pushback nhằm chặn lưu lượng càng gần nguồn càng tốt.
 
-Ở nhóm thứ nhất, các bộ dữ liệu như CICIDS2017 được dùng rất rộng rãi trong đánh giá phát hiện xâm nhập vì cung cấp nhiều kiểu DoS/DDoS trong môi trường mô phỏng doanh nghiệp \cite{sharafaldin2018cicids}. Với dữ liệu dạng flow, cây quyết định và random forest là hai lựa chọn quen thuộc vì chi phí suy luận thấp hơn nhiều mô hình sâu và cũng dễ giải thích hơn \cite{breiman2001random}. Dù vậy, nếu mục tiêu cuối cùng là đưa logic này xuống switch, random forest thường trở nên quá nặng vì số rule và số threshold lớn.
+Ở nhóm thứ nhất, các bộ dữ liệu như CICIDS2017 được sử dụng rộng rãi trong đánh giá phát hiện xâm nhập vì cung cấp nhiều kiểu DoS/DDoS trong môi trường mô phỏng doanh nghiệp \cite{sharafaldin2018cicids}. Với dữ liệu dạng flow, cây quyết định và random forest là hai lựa chọn quen thuộc vì chi phí suy luận thấp hơn nhiều mô hình sâu và cũng dễ diễn giải hơn \cite{breiman2001random}. Tuy nhiên, nếu mục tiêu cuối cùng là đưa logic này xuống switch, random forest thường trở nên quá nặng do số rule và số threshold lớn.
 
-Ở nhóm thứ hai, P4 và programmable data plane cho phép đưa một phần logic phân loại trực tiếp vào quá trình xử lý gói tin \cite{bosshart2014p4}. Đây là nền tảng khiến những hệ thống như SISTAR trở nên khả thi. Tuy nhiên, data plane vẫn có giới hạn khá rõ về số bảng match, thanh ghi và loại phép toán hỗ trợ, nên mô hình nào chính xác hơn chưa chắc đã là mô hình phù hợp hơn để triển khai.
+Ở nhóm thứ hai, P4 và programmable data plane cho phép đưa một phần logic phân loại trực tiếp vào quá trình xử lý gói tin \cite{bosshart2014p4}. Đây là nền tảng khiến những hệ thống như SISTAR trở nên khả thi. Tuy nhiên, data plane vẫn có các ràng buộc rõ ràng về số bảng match, thanh ghi và loại phép toán hỗ trợ; do đó, mô hình có độ chính xác cao hơn chưa chắc đã là mô hình phù hợp hơn để triển khai.
 
-Ở nhóm thứ ba, pushback là một ý tưởng đã có từ lâu trong phòng thủ DDoS: không chỉ drop traffic ở gần victim mà phải đẩy quyết định lọc lên upstream router hoặc switch để giải phóng tài nguyên mạng sớm hơn \cite{mahajan2002controlling}. Điểm mới của project không nằm ở việc phát minh lại pushback, mà ở chỗ thiết kế lại policy ra quyết định theo hướng tích lũy độ tin cậy, thay vì block ngay khi có một lần phát hiện malicious.
+Ở nhóm thứ ba, pushback là một ý tưởng đã được nghiên cứu từ lâu trong phòng thủ DDoS: thay vì chỉ drop traffic ở gần victim, quyết định lọc cần được đẩy lên upstream router hoặc switch để giải phóng tài nguyên mạng sớm hơn \cite{mahajan2002controlling}. Điểm mới của nghiên cứu này không nằm ở việc phát minh lại pushback, mà ở việc thiết kế lại policy ra quyết định theo hướng tích lũy độ tin cậy, thay vì block ngay khi có một lần phát hiện malicious.
 
-\begin{table}
-\caption{Tóm tắt ngắn gọn các hướng tiếp cận liên quan và vị trí của project.}
+\begin{table}[!htbp]
+\caption{Tóm tắt ngắn gọn các hướng tiếp cận liên quan và vị trí của nghiên cứu này.}
 \label{tab:sota}
 \centering
+\small
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{|p{2.2cm}|p{2.1cm}|p{2.2cm}|p{2.4cm}|p{2.2cm}|}
 \hline
 \textbf{Công trình / hướng} & \textbf{Mục tiêu chính} & \textbf{Mô hình / kỹ thuật} & \textbf{Ưu điểm} & \textbf{Hạn chế chính} \\
@@ -29,4 +31,6 @@ Project này & Tái hiện SISTAR và cải tiến policy giảm thiểu & DT, R
 \end{tabular}
 \end{table}
 
-Từ bảng trên có thể thấy khoảng trống mà project hướng đến là sự kết hợp của hai yêu cầu: mô hình đủ nhẹ cho data plane và policy giảm thiểu đủ thận trọng để tránh block nhầm. Đây cũng là lý do phần cải tiến của nhóm tập trung vào cơ chế pushback mới, thay vì cố thay DT-CTS bằng một mô hình phức tạp hơn.
+Từ Bảng~\ref{tab:sota} có thể thấy khoảng trống mà nghiên cứu này hướng tới là sự kết hợp của hai yêu cầu: mô hình đủ nhẹ cho data plane và policy giảm thiểu đủ thận trọng để hạn chế block nhầm. Đây cũng là lý do phần cải tiến tập trung vào cơ chế pushback mới, thay vì thay thế hoàn toàn DT-CTS bằng một mô hình phức tạp hơn.
+
+\FloatBarrier
