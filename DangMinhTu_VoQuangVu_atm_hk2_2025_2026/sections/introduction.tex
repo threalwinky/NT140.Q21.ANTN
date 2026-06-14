@@ -1,0 +1,18 @@
+\section{Giới thiệu}
+
+Các hệ thống chống DDoS hiện nay thường phải đánh đổi giữa hai mục tiêu: phát hiện đủ chính xác và phản ứng đủ sớm. Những hướng tiếp cận dựa hoàn toàn vào máy chủ phân tích tập trung có ưu điểm là linh hoạt, nhưng tới lúc hệ thống kết luận được đó là attack thì traffic xấu đã đi qua phần lớn mạng. Ngược lại, nếu muốn đưa logic phát hiện xuống switch hoặc data plane, mô hình phải đủ nhỏ, đủ đơn giản và có thể biểu diễn bằng các điều kiện so sánh ngưỡng \cite{bosshart2014p4,breiman2001random}.
+
+SISTAR là một hướng tiếp cận đáng chú ý vì dùng các mô hình cây quyết định, đặc biệt là DT-CTS, để thu hẹp khoảng cách giữa học máy và programmable data plane. Về bản chất, DT-CTS chủ động khống chế số lượng threshold trên mỗi feature để mô hình dễ ánh xạ thành rule và thanh ghi trên switch hơn so với cây quyết định thông thường. Trong project này, nhóm xem số lượng threshold như một chỉ báo thực dụng cho độ phức tạp triển khai.
+
+Tuy nhiên, một hệ thống chỉ phát hiện tốt là chưa đủ. Nếu cơ chế giảm thiểu được triển khai quá mạnh tay, chẳng hạn block ngay sau một lần dự đoán malicious, hệ thống có thể cắt attack rất nhanh nhưng cũng dễ chặn nhầm benign traffic. Đây là điều không mong muốn trong môi trường thật, nơi những burst hợp lệ hoặc các đợt tăng traffic ngắn hạn vẫn có thể xuất hiện.
+
+Từ quan sát đó, báo cáo không chỉ tái hiện phần phân loại của SISTAR mà còn mở rộng sang cách điều phối giảm thiểu. Nhóm xây dựng một cơ chế mới tên là hierarchical confidence-aware pushback, trong đó quyết định chặn không dựa vào một dự đoán đơn lẻ mà dựa trên bằng chứng được tích lũy từ nhiều detector theo thời gian. Nhờ vậy, phản ứng của hệ thống trở nên có mức độ hơn, thay vì chỉ có hai trạng thái là cho qua hoặc block ngay.
+
+\subsection{Đóng góp của báo cáo}
+
+Đóng góp chính của báo cáo có thể tóm tắt như sau:
+\begin{enumerate}
+\item Xây dựng lại một pipeline thực nghiệm gọn, bám theo tinh thần của SISTAR trên tập CICIDS2017 với ba mô hình DT, RF và DT-CTS, kèm các chỉ số accuracy, F1 và threshold count.
+\item Đề xuất cơ chế hierarchical confidence-aware pushback gồm edge detector, core detector và suspicion score để hệ thống leo thang phản ứng qua các mức monitor, local rate-limit, upstream pushback và hard block.
+\item Chỉ ra bằng thực nghiệm rằng cơ chế cải tiến này tạo được cân bằng tốt hơn giữa giảm attack traffic và hạn chế false block so với immediate pushback trong cùng một môi trường mô phỏng.
+\end{enumerate}

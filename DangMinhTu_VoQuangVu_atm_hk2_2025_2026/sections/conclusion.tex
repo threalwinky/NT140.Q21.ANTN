@@ -1,0 +1,7 @@
+\section{Kết luận}
+
+Báo cáo đã tái hiện rút gọn các ý chính của SISTAR trong một workflow phần mềm có thể chạy lại, gồm phát hiện DDoS bằng mô hình cây quyết định nhẹ, so sánh số threshold như một chỉ báo cho khả năng triển khai và mô phỏng cơ chế pushback để đánh giá tác động tới victim. Kết quả cho thấy DT-CTS là mô hình phù hợp với mục tiêu của đề tài vì vẫn giữ được chất lượng cạnh tranh trong khi giảm mạnh độ phức tạp so với cây quyết định thường.
+
+Đóng góp quan trọng hơn của project nằm ở phần cải tiến hệ thống: hierarchical confidence-aware pushback. Cơ chế này thay thế cách block ngay bằng một quá trình tích lũy bằng chứng từ edge detector, core detector và tín hiệu spike, rồi mới leo thang phản ứng qua bốn mức. Nhờ đó, hệ thống vẫn giảm gần như toàn bộ attack traffic tới victim nhưng tránh được false block trong mô phỏng hiện tại.
+
+Trong tương lai, một hướng mở rộng hợp lý là chuyển từ mô phỏng flow-level sang đánh giá thực hơn trên BMv2 hoặc môi trường P4 có thể đo trực tiếp chi phí bảng match, register và độ trễ xử lý. Bên cạnh đó, policy mới cũng có thể được tinh chỉnh thêm bằng các chiến lược học ngưỡng động theo tải mạng hoặc theo từng nhóm nguồn lưu lượng.

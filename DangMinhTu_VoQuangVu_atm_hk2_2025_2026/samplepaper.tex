@@ -1,0 +1,81 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.21 of 2022/01/12
+%
+\documentclass[runningheads]{llncs}
+
+% ========================
+% Vietnamese support
+% ========================
+\usepackage[T5]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese,english]{babel}
+% pdflatex-compatible Vietnamese setup using UTF-8 input and T5 font encoding.
+%
+
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{subcaption}
+\usepackage[font=small,labelfont=bf]{caption}
+% Used for displaying figures. This sample uses an inline placeholder box
+% so the document can compile even when no external image file is present.
+%
+
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+%
+\begin{document}
+%
+\title{Tái hiện SISTAR và cải tiến cơ chế pushback phân cấp cho giảm thiểu DDoS trong programmable data plane}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Đặng Minh Tú\inst{1,2}\and
+Võ Quang Vũ\inst{1,2} \and
+Nghi Hoàng Khoa\inst{1,2}}
+%
+\authorrunning{Dang Minh Tu et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{Khoa Mạng máy tính và Truyền thông \and
+Trường Đại học Công nghệ Thông tin, ĐHQG-HCM
+\email{\{24520033,24522045\}@gm.uit.edu.vn} \email{khoanh@uit.edu.vn}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+Báo cáo này trình bày quá trình tái hiện rút gọn ý tưởng của SISTAR, một hướng tiếp cận phát hiện và giảm thiểu tấn công DDoS bằng mô hình học máy nhẹ có thể đưa xuống programmable data plane. Thay vì dịch lại bài báo gốc, nhóm xây dựng một quy trình thực nghiệm bằng Python để đánh giá ba mô hình DT, RF và DT-CTS trên tập CICIDS2017 đã được chuẩn hóa, đồng thời dùng số lượng threshold như một chỉ báo thực tế cho chi phí triển khai trên switch. Bên cạnh phần tái hiện, báo cáo còn đề xuất một cơ chế giảm thiểu mới mang tên hierarchical confidence-aware pushback. Cơ chế này kết hợp edge detector, core detector và suspicion score để hệ thống phản ứng theo nhiều mức, từ theo dõi cho tới chặn hoàn toàn khi bằng chứng đã đủ mạnh. Kết quả thực nghiệm cho thấy DT-CTS vẫn giữ chất lượng phân loại ở mức cạnh tranh trong khi giảm đáng kể số threshold so với DT thường. Đồng thời, cơ chế pushback mới gần như loại bỏ toàn bộ attack bytes tới victim mà vẫn tránh được false block trong mô phỏng, tốt hơn cách block ngay sau một lần phát hiện malicious.
+
+\keywords{DDoS detection \and programmable data plane \and DT-CTS \and pushback \and CICIDS2017}
+\end{abstract}
+%
+%
+%
+\input{sections/overview}
+\input{sections/introduction}
+\input{sections/related-work}
+\input{sections/methodology}
+\input{sections/evaluation}
+\input{sections/conclusion}
+
+
+\begin{credits}
+\subsubsection{Source code/Dataset} Source code and experiment outputs are taken from the accompanying course project repository. The main dataset view used in the report is the paper-compatible BENIGN vs Wednesday DoS subset built from CICIDS2017.
+\end{credits}
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+\bibliographystyle{splncs04}
+\bibliography{references}
+\end{document}

@@ -1,0 +1,14 @@
+\section{Tổng quan}
+
+Tấn công từ chối dịch vụ phân tán (Distributed Denial of Service -- DDoS) vẫn là một trong những bài toán khó và thực tế nhất trong an toàn mạng. Vấn đề không chỉ là phát hiện đúng lưu lượng độc hại, mà còn phải phản ứng đủ sớm để giảm tải cho các liên kết và thiết bị trung gian trước khi traffic tấn công chạm tới máy chủ đích. Nếu mọi quyết định đều được đưa ra ở máy chủ hoặc bộ điều khiển trung tâm, hệ thống có thể phân tích khá chính xác nhưng vẫn chậm về mặt vận hành.
+
+SISTAR được đề xuất để xử lý chính mâu thuẫn đó. Ý tưởng của hệ thống là phát hiện DDoS ngay trong mạng bằng các mô hình cây quyết định nhẹ, sau đó dùng cơ chế pushback để đẩy hành động giảm thiểu về phía upstream switch, tức là gần nguồn tấn công hơn. Trong bối cảnh programmable data plane và P4 ngày càng được quan tâm, hướng tiếp cận này có ý nghĩa rõ ràng vì nó nối được hai phía: học máy và khả năng xử lý trực tiếp ở lớp chuyển tiếp gói tin.
+
+Báo cáo này không nhằm dịch lại bài báo gốc. Thay vào đó, nhóm chọn cách tái hiện những ý chính của SISTAR bằng một workflow phần mềm có thể chạy lại được. Toàn bộ phần trình bày tập trung vào ba câu hỏi sau:
+\begin{enumerate}
+\item Mô hình học máy nào đủ chính xác để phân biệt benign flow và attack flow?
+\item Mô hình nào đủ gọn để có tiềm năng triển khai trong data plane, với số lượng threshold nhỏ?
+\item Một cơ chế pushback mới có thể giữ được hiệu quả chặn attack nhưng giảm block nhầm benign traffic hay không?
+\end{enumerate}
+
+Để trả lời các câu hỏi này, nhóm xây dựng một pipeline gồm tiền xử lý dữ liệu CICIDS2017, huấn luyện ba mô hình DT, RF và DT-CTS, đánh giá độ chính xác và số threshold, sau đó mô phỏng ba chính sách giảm thiểu: no pushback, immediate pushback và hierarchical confidence-aware pushback. Kết quả thu được cho thấy phần cải tiến của nhóm có ý nghĩa ở cấp độ hệ thống, chứ không chỉ dừng ở việc thay đổi một mô hình phân loại.
