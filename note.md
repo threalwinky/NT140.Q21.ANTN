@@ -171,19 +171,22 @@ Kết quả improvement hiện tại:
 
 ```text
 Immediate pushback:
-- attack reduction: 84.64%
-- false block events: 3
+- attack bytes tới victim: 0
+- false block events: 11
 
-Gated pushback:
-- attack reduction: 84.60%
+Hierarchical Confidence-Aware Pushback:
+- attack bytes tới victim: 4,591
 - false block events: 0
+- local rate-limit events: 23
+- upstream pushback events: 10
+- hard block events: 8
 ```
 
 Kết luận:
 
 ```text
-Gated pushback giữ khả năng giảm attack gần như immediate,
-nhưng giảm false block từ 3 xuống 0.
+Hierarchical Confidence-Aware Pushback vẫn giảm attack rất mạnh,
+nhưng không block vội như immediate pushback.
 ```
 
 ## 11.1. Cơ Chế Pushback: Switch Làm Gì?
@@ -229,33 +232,38 @@ Nhược điểm:
 
 - Dễ chặn nhầm benign nếu model false positive.
 
-Với `gated_pushback`:
+Với `hierarchical_confidence_pushback`:
 
 ```text
-Source phải bị dự đoán attack nhiều lần liên tiếp
-=> mới block.
+Source không bị block ngay.
+Hệ thống cộng suspicion score theo bằng chứng từ edge switch,
+core switch và traffic spike.
 ```
 
-Trong project hiện tại:
+Khi score tăng dần, phản ứng leo thang theo mức:
 
 ```text
-gated_pushback block sau 2 lần malicious liên tiếp.
+monitor
+-> local rate-limit
+-> upstream pushback
+-> hard block
 ```
 
 Ưu điểm:
 
 - Giảm chặn nhầm benign.
-- Vẫn giữ khả năng giảm attack gần như immediate.
+- Vẫn phản ứng sớm với attack thật.
+- Hợp với ý tưởng nhiều switch phối hợp của SISTAR hơn.
 
 Kết quả mô phỏng hiện tại:
 
 ```text
 Immediate pushback:
-- attack reduction: 84.64%
-- false block events: 3
+- attack bytes tới victim: 0
+- false block events: 11
 
-Gated pushback:
-- attack reduction: 84.60%
+Hierarchical Confidence-Aware Pushback:
+- attack bytes tới victim: 4,591
 - false block events: 0
 ```
 
@@ -263,7 +271,8 @@ Kết luận ngắn:
 
 ```text
 Pushback giúp chặn attack sớm hơn trong mạng.
-Gated pushback làm việc này cẩn thận hơn để giảm chặn nhầm traffic bình thường.
+Hierarchical Confidence-Aware Pushback làm việc này theo nhiều mức,
+nên giảm block nhầm mà vẫn giữ hiệu quả giảm attack rất cao.
 ```
 
 ## 12. Gini Impurity
@@ -537,15 +546,15 @@ Switch không chỉ forward packet mà còn hỗ trợ phân loại traffic,
 sau đó controller có thể cài rule để chặn hoặc pushback attack traffic.
 ```
 
-## 19. Cải Tiến Gated Pushback
+## 19. Cải Tiến Hierarchical Confidence-Aware Pushback
 
-Trong phần improvement, project thêm cơ chế `gated_pushback`.
+Trong phần improvement, project dùng `hierarchical_confidence_pushback` làm cơ chế cải tiến chính.
 
 Mục tiêu:
 
 ```text
 Giảm chặn nhầm benign traffic,
-nhưng vẫn giữ khả năng giảm attack gần như cơ chế pushback gốc.
+nhưng vẫn giữ khả năng phát hiện sớm và giảm tải trên toàn tuyến mạng.
 ```
 
 Có thể phân biệt 3 cơ chế như sau:
@@ -554,7 +563,7 @@ Có thể phân biệt 3 cơ chế như sau:
 |---|---|---|---|
 | `no_pushback` | Không chặn upstream, chỉ để traffic đi qua | Không chặn nhầm benign | Attack vẫn tới victim nhiều |
 | `immediate_pushback` | Phát hiện malicious 1 lần là block source ngay | Chặn attack nhanh | Dễ chặn nhầm nếu model false positive |
-| `gated_pushback` | Chỉ block sau nhiều lần malicious liên tiếp | Giảm chặn nhầm benign | Phản ứng chậm hơn immediate một chút |
+| `hierarchical_confidence_pushback` | Tích lũy suspicion score và leo thang theo mức | Giảm chặn nhầm benign, vẫn phản ứng sớm | Logic phức tạp hơn |
 
 Trong paper/reproduction gốc, cơ chế pushback theo kiểu trực tiếp:
 
@@ -563,30 +572,29 @@ Nếu source bị phát hiện attack
 => block/pushback ngay.
 ```
 
-Cải tiến `gated_pushback` thêm một bước kiểm tra:
+Cải tiến `hierarchical_confidence_pushback` thay đổi hoàn toàn cách mitigation:
 
 ```text
-Lần 1 source bị dự đoán attack
-=> ghi nhận nghi ngờ, chưa block.
-
-Lần 2 liên tiếp vẫn bị dự đoán attack
-=> mới block source.
+Edge switch phát hiện sớm -> cộng ít điểm nghi ngờ
+Core switch xác nhận sâu hơn -> cộng nhiều điểm hơn
+Traffic spike mạnh -> cộng thêm điểm
 ```
 
-Ý nghĩa của chữ `gate`:
+Khi score vượt các ngưỡng:
 
 ```text
-Gate là một "cổng điều kiện".
-Source phải vượt qua điều kiện đủ nghi ngờ
-thì hệ thống mới thật sự block.
+Mức 1: monitor
+Mức 2: local rate-limit
+Mức 3: upstream pushback
+Mức 4: hard block
 ```
 
-Vì sao cần gated pushback?
+Vì sao cần cơ chế này?
 
 - Model ML có thể có false positive.
 - Nếu block ngay sau 1 lần dự đoán attack, benign source có thể bị chặn nhầm.
-- Gated pushback yêu cầu bằng chứng mạnh hơn trước khi block.
-- Nhờ vậy giảm false block mà vẫn giữ khả năng giảm attack.
+- Nếu chỉ dùng một ngưỡng cứng kiểu fixed gate thì cải tiến vẫn còn khá nhỏ.
+- Hierarchical Confidence-Aware Pushback biến mitigation thành một cơ chế phối hợp nhiều switch và nhiều mức phản ứng.
 
 Kết quả mô phỏng hiện tại:
 
@@ -596,29 +604,30 @@ No pushback:
 - false block events: 0
 
 Immediate pushback:
-- attack reduction: 84.64%
-- false block events: 3
-- benign preserved: 97.11%
+- attack bytes tới victim: 0
+- false block events: 11
 
-Gated pushback:
-- attack reduction: 84.60%
+Hierarchical Confidence-Aware Pushback:
+- attack bytes tới victim: 4,591
 - false block events: 0
-- benign preserved: 98.12%
+- local rate-limit events: 23
+- upstream pushback events: 10
+- hard block events: 8
 ```
 
 Nhận xét:
 
-- `immediate_pushback` giảm attack mạnh nhưng có 3 lần chặn nhầm.
-- `gated_pushback` giữ mức giảm attack gần như tương đương.
-- Nhưng `gated_pushback` giảm false block từ 3 xuống 0.
-- Benign traffic được giữ lại nhiều hơn: 98.12% so với 97.11%.
+- `immediate_pushback` giảm attack mạnh nhất nhưng có 11 lần chặn nhầm.
+- `hierarchical_confidence_pushback` vẫn giữ attack bytes tới victim ở mức rất thấp.
+- Đồng thời nó giảm false block từ 11 xuống 0.
+- Cơ chế mới còn cho thấy hệ thống đã thực sự đi qua các mức `rate-limit`, `pushback`, rồi mới `hard block`.
 
 Câu nói ngắn khi thuyết trình:
 
 ```text
-Gated pushback là cải tiến giúp hệ thống không block source quá vội.
-Thay vì chặn ngay sau một lần dự đoán attack,
-nó yêu cầu source bị phát hiện malicious liên tiếp rồi mới block.
-Kết quả là vẫn giảm attack gần như immediate pushback,
-nhưng loại bỏ false block trong mô phỏng của project.
+Hierarchical Confidence-Aware Pushback là cải tiến giúp hệ thống không block source quá vội.
+Thay vì chặn ngay hoặc chỉ thêm một gate đơn giản,
+nó tích lũy suspicion score từ nhiều switch rồi mới leo thang phản ứng.
+Kết quả là attack vẫn bị giảm rất mạnh,
+nhưng false block được loại bỏ trong mô phỏng của project.
 ```

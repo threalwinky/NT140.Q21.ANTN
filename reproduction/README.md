@@ -1,164 +1,118 @@
 # Reduced SISTAR Reproduction
 
-This directory contains a reduced reproduction of the core ideas in SISTAR.
+This directory contains the active reproduction workflow for the project.
 
-What is reproduced:
+## What is included
 
-- A baseline `Decision Tree`
-- A baseline `Random Forest`
-- The repository's `DT-CTS` implementation from `SISTAR/model/DT-CTS.py`
-- Threshold-count comparison as a deployment-efficiency proxy
-- A simplified 3-hop pushback simulation:
+- baseline `DT`
+- baseline `RF`
+- repo-native `DT-CTS` from [DT-CTS.py](/home/team/NT140.Q21.ANTN/Final/SISTAR/model/DT-CTS.py)
+- threshold-count comparison as a deployment-efficiency proxy
+- reduced pushback simulation with three policies:
   - `no_pushback`
   - `immediate_pushback`
-  - `gated_pushback` as a small improvement over the paper idea
+  - `hierarchical_confidence_pushback`
 
-What is intentionally simplified:
+The previous fixed-gate pushback idea has been replaced by a hierarchical confidence-aware design.
 
-- No real Tofino hardware
-- No BMv2 / P4 toolchain dependency
-- No exact hardware resource counters
+## Mitigation Improvement
 
-The preferred dataset path is now the raw Kaggle parquet export:
+`Hierarchical Confidence-Aware Pushback` works in four levels:
 
-- Dataset slug: `dhoogla/cicids2017`
-- File used by the reproduction: `DoS-Wednesday-no-metadata.parquet`
+1. `monitor`
+2. `local_rate_limit`
+3. `upstream_pushback`
+4. `hard_block`
 
-The reproduction reads that parquet file directly through `kagglehub`, without converting it into a repo-local CSV. The feature set is aligned to the raw parquet columns:
+The simulation uses:
 
-- `protocol`
-- `init_win_bytes_forward`
-- `fwd_header_length`
-- `packet_length_mean`
-- `flow_packets_persecond`
+- an `edge DT-CTS` detector with a lightweight feature set
+- a `core DT-CTS` detector with a fuller feature set
+- a per-source `suspicion score` that increases when both detectors agree or traffic spikes strongly
 
-`Destination Port` is not present in the raw parquet export from this Kaggle dataset, so the reduced reproduction uses `Protocol` instead. If the Kaggle dataset cannot be reached, the script falls back to a synthetic DDoS-like dataset.
+This is meant to better match the distributed defense idea of SISTAR than a simple fixed gate.
 
-## Files
+## Main Commands
 
-- `src/run_reproduction.py`
-  - Entry point. This is the only file you need to run for the full experiment.
-- `src/config.py`
-  - Dataset slug, feature names, and raw parquet column mapping.
-- `src/data_pipeline.py`
-  - Download or reuse the raw Kaggle parquet file, then build the Wednesday subset used in the reproduction.
-- `src/model_pipeline.py`
-  - Train `DT`, `RF`, and `DT-CTS`, then compute metrics and threshold counts.
-- `src/pushback_sim.py`
-  - Build the reduced pushback trace and compare pushback policies.
-- `src/report_utils.py`
-  - Export plots and the summary markdown.
-- `src/benchmark_metrics.py`
-  - Compute latency, false rates, rule counts, and aggregate benchmark metrics.
-- `src/multi_dataset_validation.py`
-  - Compatibility helper that validates DT-CTS on the generated benchmark CSV.
-- `src/paper_benchmark_3models.py`
-  - Single-file benchmark with `DT`, `RF`, `DT-CTS` for feature sets 3/5/7 and bar-chart output.
-
-## What should I run?
-
-If you want the full demo in one command, run this file:
-
-```bash
-cd /home/team/NT140.Q21.ANTN/Final/reproduction
-python3 src/run_full_demo.py
-```
-
-That single command will:
-
-- run the core reproduction pipeline
-  - split `combine.csv` into 75% train and 25% benchmark
-  - train `DT`, `RF`, and `DT-CTS` on the 75% split
-  - benchmark on the 20% hold-out split
-- write all csv/png/md outputs to `output/`
-- generate report-ready comparison figures automatically
-
-If you only want the core reproduction pipeline, run:
+Run the reduced reproduction:
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/run_reproduction.py
 ```
 
-## Run locally
-
-```bash
-cd /home/team/NT140.Q21.ANTN/Final/reproduction
-python3 src/run_full_demo.py
-```
-
-If you only want to inspect results from the last run:
-
-```bash
-cat output/summary.md
-column -s, -t < output/classification_metrics.csv
-column -s, -t < output/threshold_metrics.csv
-column -s, -t < output/pushback_metrics.csv
-```
-
-To confirm which dataset source the last run actually used:
-
-```bash
-cat output/dataset_source.txt
-```
-
-## Benchmark Validation
-
-The repository keeps `src/multi_dataset_validation.py` only as a compatibility helper. The active benchmark flow now uses a 75/25 stratified split of `combine.csv` and evaluates `DT`, `RF`, and `DT-CTS` on the 25% hold-out set.
-
-If you want to rerun the benchmark validation directly, use:
-
-```bash
-cd /home/team/NT140.Q21.ANTN/Final/reproduction
-python3 src/multi_dataset_validation.py
-```
-
-## Data Benchmark 3-Model Benchmark
-
-Run:
+Run the paper-style benchmark:
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/paper_benchmark_3models.py
 ```
 
-This single script benchmarks the 20% hold-out split of `combine.csv` using three model families:
+Run the full demo:
 
-- `DT`
-- `RF`
-- `DT-CTS`
-
-For each model, it evaluates feature-set sizes `3`, `5`, and `7`, then exports both CSV results and bar charts.
-
-Outputs:
-
-```text
-output/benchmark_combine_75_25_dt_rf_dtcts.csv
-output/benchmark_combine_75_25_dt_rf_dtcts.png
+```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/run_full_demo.py
 ```
 
-## Output
+That full demo now:
 
-The script writes results to:
+- refreshes `output/`
+- reruns the reduced reproduction
+- reruns the paper-style benchmark
+- reruns the improvement comparison in `improvement/output/`
+
+## Current Outputs
+
+Core reproduction outputs:
 
 - `output/classification_metrics.csv`
 - `output/threshold_metrics.csv`
-- `output/pushback_metrics.csv`
 - `output/benchmark_metrics.csv`
- - `output/benchmark_combine_75_25_dt_rf_dtcts.csv` **(NEW)**
+- `output/pushback_metrics.csv`
+- `output/pushback_detail.csv`
 - `output/summary.md`
-- `output/classification_accuracy.png`
-- `output/classification_f1.png`
-- `output/classification_metric_suite.png`
-- `output/threshold_usage.png`
-- `output/thresholds_by_feature.png`
-- `output/pushback_attack_bytes.png`
-- `output/pushback_policy_summary.png`
-- `output/reproduction_dashboard.png`
+
+Paper-style benchmark outputs:
+
+- `output/benchmark_cicids2017_dt_rf_dtcts.csv`
+- `output/benchmark_accuracy.png`
+- `output/benchmark_f1_scores.png`
+- `output/benchmark_accept_deny_f3.png`
+- `output/benchmark_accept_deny_f5.png`
+- `output/benchmark_accept_deny_f7.png`
+
+Improvement outputs:
+
+- `improvement/output/TEACHER_SUMMARY.md`
+- `improvement/output/teacher_comparison_table.csv`
+- `improvement/output/hierarchical_improvement_dashboard.png`
+
+## Current Results Snapshot
+
+From the latest `run_reproduction.py` run:
+
+- `DT` F1: `0.9620`
+- `RF` F1: `0.9327`
+- `DT-CTS` F1: `0.9249`
+- `DT-CTS` thresholds: `14`
+- threshold reduction vs `DT`: `61.11%`
+
+From the latest hierarchical mitigation run:
+
+- attack-byte reduction vs `no_pushback`: `99.92%`
+- false block events: `0`
+- local rate-limit events: `23`
+- upstream pushback events: `10`
+- hard block events: `8`
+
+## Dataset Notes
+
+- The active reproduction pipeline uses `reproduction/datasets/combine.csv`.
+- `build_dataset()` extracts the paper-compatible `BENIGN vs Wednesday DoS` subset.
+- If local data is unavailable, the helper code can still fall back to synthetic flows.
 
 ## Docker
-
-If you want a clean containerized run:
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final
@@ -166,12 +120,4 @@ docker build -f reproduction/Dockerfile -t nt140-sistar-repro .
 docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sistar-repro
 ```
 
-This repo-root build is required because the reproduction code loads:
-
-- `SISTAR/model/DT-CTS.py`
-
-and may download:
-
-- `dhoogla/cicids2017` via `kagglehub`
-
-The container therefore needs network access on first run unless the Kaggle cache already exists.
+The container path is still useful for the core Python reproduction, but the main workflow is easiest to run directly on the shared workspace.

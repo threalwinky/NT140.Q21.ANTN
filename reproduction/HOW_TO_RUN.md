@@ -1,122 +1,97 @@
 # Cách chạy reproduction
 
-## 1. Chạy toàn bộ thí nghiệm
-
-Di chuyển vào thư mục:
+## 1. Chạy toàn bộ workflow
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/run_full_demo.py
 ```
 
-Chạy:
+Lệnh này sẽ:
+
+- chạy reproduction chính với `DT`, `RF`, `DT-CTS`
+- mô phỏng `Hierarchical Confidence-Aware Pushback`
+- chạy benchmark paper-style `DT / RF / DT-CTS` với `3 / 5 / 7` feature
+- chạy riêng phần improvement và ghi output vào `reproduction/improvement/output`
+
+## 2. Chỉ chạy reproduction chính
 
 ```bash
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
 python3 src/run_reproduction.py
 ```
 
-Lệnh này sẽ tự:
+Script này sẽ:
 
-- tải hoặc dùng lại cache của dataset Kaggle `dhoogla/cicids2017`
-- đọc trực tiếp file raw parquet `DoS-Wednesday-no-metadata.parquet`
-- nếu không tải/đọc được thì fallback sang synthetic dataset
-- train 3 mô hình:
-  - `DT`
-  - `RF`
-  - `DT-CTS`
-- chạy mô phỏng `pushback`
-- xuất bảng kết quả, hình, và file tóm tắt
-- tự sinh các biểu đồ so sánh để chèn vào báo cáo
+- đọc dataset từ `combine.csv`
+- train `DT`, `RF`, `DT-CTS`
+- tính classification metrics, threshold metrics, latency/FPR/FNR
+- chạy ba policy:
+  - `no_pushback`
+  - `immediate_pushback`
+  - `hierarchical_confidence_pushback`
+- xuất CSV, PNG và `summary.md`
 
-Nguồn dataset thật ưu tiên hiện tại là:
+## 3. Chỉ chạy benchmark paper-style
 
 ```bash
-dhoogla/cicids2017 / DoS-Wednesday-no-metadata.parquet
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+python3 src/paper_benchmark_3models.py
 ```
 
-`reproduction/src/data_pipeline.py` hiện đã được sửa để:
+Script này tạo:
 
-- dùng raw parquet từ Kaggle thông qua `kagglehub`
-- tự động fallback sang synthetic dataset nếu Kaggle không truy cập được hoặc file không đúng format
+- `output/benchmark_cicids2017_dt_rf_dtcts.csv`
+- các plot `benchmark_*.png`
+- confusion matrices cho từng model / số feature
 
-Lưu ý: bản parquet raw này không có cột `Destination Port`, nên reproduction dùng `Protocol` thay cho feature đó.
-
-## 2. Xem kết quả nhanh
-
-Xem bản tóm tắt:
-
-```bash
-cat output/summary.md
-```
-
-Xem bảng metric classification:
-
-```bash
-column -s, -t < output/classification_metrics.csv
-```
-
-Xem bảng threshold:
-
-```bash
-column -s, -t < output/threshold_metrics.csv
-```
-
-Xem bảng pushback:
-
-```bash
-column -s, -t < output/pushback_metrics.csv
-```
-
-## 3. Các hình output
-
-Sau khi chạy xong, các hình nằm ở:
-
-- `output/classification_accuracy.png`
-- `output/classification_f1.png`
-- `output/classification_metric_suite.png`
-- `output/threshold_usage.png`
-- `output/thresholds_by_feature.png`
-- `output/pushback_attack_bytes.png`
-- `output/pushback_policy_summary.png`
-- `output/reproduction_dashboard.png`
-
-## 4. File nào cần chạy?
-
-Chỉ cần chạy đúng **1 file**:
-
-- `src/run_reproduction.py`
-
-Các file còn lại chỉ là module phụ:
-
-- `src/config.py`
-- `src/data_pipeline.py`
-- `src/model_pipeline.py`
-- `src/pushback_sim.py`
-- `src/report_utils.py`
-
-## 5. Nếu muốn chạy bằng Docker
-
-Di chuyển về root của repo:
+## 4. Chỉ chạy improvement riêng
 
 ```bash
 cd /home/team/NT140.Q21.ANTN/Final
-docker build -f reproduction/Dockerfile -t nt140-sistar-repro .
-docker run --rm -v "$PWD/reproduction/output:/app/reproduction/output" nt140-sistar-repro
+python3 reproduction/improvement/run_hierarchical_improvement.py
 ```
 
-Cách build này cần thiết vì code trong `src/config.py` còn đọc thêm:
-
-- `SISTAR/model/DT-CTS.py`
-- dataset Kaggle `dhoogla/cicids2017` qua `kagglehub`
-
-## 6. Dataset đang dùng
-
-Script sẽ ưu tiên nguồn này:
+## 5. Xem nhanh kết quả
 
 ```bash
-dhoogla/cicids2017 / DoS-Wednesday-no-metadata.parquet
+cd /home/team/NT140.Q21.ANTN/Final/reproduction
+cat output/summary.md
+column -s, -t < output/classification_metrics.csv
+column -s, -t < output/threshold_metrics.csv
+column -s, -t < output/pushback_metrics.csv
 ```
 
-Bạn có thể kiểm tra nguồn dataset bằng:
+## 6. Các file quan trọng sau khi chạy
+
+Trong `reproduction/output/`:
+
+- `classification_metrics.csv`
+- `threshold_metrics.csv`
+- `benchmark_metrics.csv`
+- `pushback_metrics.csv`
+- `pushback_detail.csv`
+- `summary.md`
+- `pushback_attack_bytes.png`
+- `pushback_policy_summary.png`
+
+Trong `reproduction/improvement/output/`:
+
+- `TEACHER_SUMMARY.md`
+- `teacher_comparison_table.csv`
+- `teacher_policy_comparison.png`
+- `teacher_attack_timeline.png`
+- `hierarchical_improvement_dashboard.png`
+
+## 7. Dataset đang dùng
+
+Workflow hiện tại ưu tiên:
+
+```text
+reproduction/datasets/combine.csv
+```
+
+Bạn có thể kiểm tra nguồn dataset của lần chạy gần nhất bằng:
 
 ```bash
 cat output/dataset_source.txt

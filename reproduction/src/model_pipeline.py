@@ -77,7 +77,78 @@ def total_thresholds(threshold_map: Dict[str, List[float]]) -> int:
     return sum(len(v) for v in threshold_map.values())
 
 
-def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, object], np.ndarray, np.ndarray, Dict[str, float], Dict[str, np.ndarray]]:
+def make_repo_dtcts(max_depth: int | None = None):
+    RepoDTCTS = load_repo_dt_cts()
+    return RepoDTCTS(
+        max_depth=MODEL_SCALE_MEDIUM["max_depth"] if max_depth is None else max_depth,
+        min_samples_split=MODEL_SCALE_MEDIUM["min_samples_split"],
+        max_candidate_thresholds=MODEL_SCALE_MEDIUM["dtcts_max_candidate_thresholds"],
+        max_thresholds_per_feature=MODEL_SCALE_MEDIUM["dtcts_max_thresholds_per_feature"],
+    )
+
+
+def train_pushback_model_bundle(
+    df: pd.DataFrame,
+    train_indices: np.ndarray,
+    core_model: object | None = None,
+) -> Dict[str, object]:
+    train_df = df.iloc[train_indices].reset_index(drop=True)
+    if core_model is not None and getattr(core_model, "feature_names", None):
+        feature_order = list(core_model.feature_names)
+    else:
+        feature_order = select_top_paper_features(train_df, max_features=7)
+
+    edge_features = feature_order[: min(3, len(feature_order))]
+    if len(edge_features) < 3:
+        raise ValueError(f"Need at least 3 features for the edge detector, found {edge_features}")
+
+    edge_x, edge_caps = sanitize_feature_matrix(train_df, edge_features)
+    y_train = train_df["label"].to_numpy(dtype=int)
+    edge_model = make_repo_dtcts(max_depth=4)
+    edge_model.fit(edge_x, y_train)
+    setattr(edge_model, "feature_names", edge_features)
+    setattr(edge_model, "feature_caps", edge_caps)
+
+    if core_model is None:
+        core_x, core_caps = sanitize_feature_matrix(train_df, feature_order)
+        core_model = make_repo_dtcts()
+        core_model.fit(core_x, y_train)
+        setattr(core_model, "feature_names", feature_order)
+        setattr(core_model, "feature_caps", core_caps)
+
+    benign_df = train_df[train_df["label"] == 0]
+    if benign_df.empty:
+        benign_df = train_df
+
+    profile = {
+        "pps_high": float(pd.to_numeric(benign_df["flow_packets_persecond"], errors="coerce").quantile(0.995))
+        if "flow_packets_persecond" in benign_df.columns
+        else 0.0,
+        "small_packet_threshold": float(pd.to_numeric(benign_df["packet_length_mean"], errors="coerce").quantile(0.10))
+        if "packet_length_mean" in benign_df.columns
+        else 0.0,
+    }
+
+    return {
+        "edge": edge_model,
+        "core": core_model,
+        "feature_order": feature_order,
+        "profile": profile,
+    }
+
+
+def classify_models(
+    df: pd.DataFrame,
+) -> Tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    Dict[str, object],
+    np.ndarray,
+    np.ndarray,
+    Dict[str, float],
+    Dict[str, np.ndarray],
+    Dict[str, object],
+]:
     try:
         available_features = select_top_paper_features(df, max_features=7)
     except ValueError:
@@ -87,12 +158,16 @@ def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
 
     X, feature_caps = sanitize_feature_matrix(df, available_features)
     y = df["label"].to_numpy(dtype=int)
+    indices = np.arange(len(df))
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
+    train_indices, test_indices = train_test_split(
+        indices,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y,
     )
-
-    RepoDTCTS = load_repo_dt_cts()
+    X_train, X_test = X[train_indices], X[test_indices]
+    y_train, y_test = y[train_indices], y[test_indices]
 
     models = {
         "DT": SkDecisionTreeClassifier(
@@ -108,12 +183,7 @@ def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
             random_state=RANDOM_STATE,
             n_jobs=-1,
         ),
-        "DT-CTS": RepoDTCTS(
-            max_depth=MODEL_SCALE_MEDIUM["max_depth"],
-            min_samples_split=MODEL_SCALE_MEDIUM["min_samples_split"],
-            max_candidate_thresholds=MODEL_SCALE_MEDIUM["dtcts_max_candidate_thresholds"],
-            max_thresholds_per_feature=MODEL_SCALE_MEDIUM["dtcts_max_thresholds_per_feature"],
-        ),
+        "DT-CTS": make_repo_dtcts(),
     }
 
     metrics_rows = []
@@ -161,4 +231,20 @@ def classify_models(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
         )
         trained[name] = model
 
-    return pd.DataFrame(metrics_rows), pd.DataFrame(threshold_rows), trained, X_test, y_test, training_times, y_pred_dict
+    split_metadata = {
+        "train_indices": train_indices,
+        "test_indices": test_indices,
+        "feature_names": available_features,
+        "feature_caps": feature_caps,
+    }
+
+    return (
+        pd.DataFrame(metrics_rows),
+        pd.DataFrame(threshold_rows),
+        trained,
+        X_test,
+        y_test,
+        training_times,
+        y_pred_dict,
+        split_metadata,
+    )

@@ -17,7 +17,12 @@ MODEL_COLORS = {
 POLICY_COLORS = {
     "no_pushback": "#9D755D",
     "immediate_pushback": "#E45756",
-    "gated_pushback": "#72B7B2",
+    "hierarchical_confidence_pushback": "#72B7B2",
+}
+POLICY_LABELS = {
+    "no_pushback": "No pushback",
+    "immediate_pushback": "Immediate",
+    "hierarchical_confidence_pushback": "Hierarchical confidence-aware",
 }
 
 FEATURE_COLORS = {
@@ -35,6 +40,10 @@ def _model_colors(names):
 
 def _policy_colors(names):
     return [POLICY_COLORS.get(name, "#9D755D") for name in names]
+
+
+def _policy_labels(names):
+    return [POLICY_LABELS.get(name, name) for name in names]
 
 
 def _display_feature_name(name: str) -> str:
@@ -75,7 +84,7 @@ def save_threshold_plot(threshold_df: pd.DataFrame, out_path: Path):
 
 def save_pushback_plot(pushback_detail: pd.DataFrame, out_path: Path):
     fig, ax = plt.subplots(figsize=(8, 4.5))
-    for policy in ["no_pushback", "immediate_pushback", "gated_pushback"]:
+    for policy in ["no_pushback", "immediate_pushback", "hierarchical_confidence_pushback"]:
         subset = (
             pushback_detail[pushback_detail["policy"] == policy]
             .groupby("window", as_index=False)["attack_bytes_reaching_victim"]
@@ -84,7 +93,7 @@ def save_pushback_plot(pushback_detail: pd.DataFrame, out_path: Path):
         ax.plot(
             subset["window"],
             subset["attack_bytes_reaching_victim"],
-            label=policy,
+            label=POLICY_LABELS.get(policy, policy),
             color=POLICY_COLORS.get(policy, "#9D755D"),
             linewidth=2,
         )
@@ -157,6 +166,7 @@ def save_threshold_feature_plot(threshold_df: pd.DataFrame, out_path: Path):
 
 def save_pushback_summary_plot(pushback_df: pd.DataFrame, out_path: Path):
     policies = pushback_df["policy"].tolist()
+    labels = _policy_labels(policies)
     fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
     columns = [
         ("attack_bytes_reaching_victim", "Attack bytes to victim"),
@@ -165,7 +175,7 @@ def save_pushback_summary_plot(pushback_df: pd.DataFrame, out_path: Path):
     ]
 
     for ax, (column, title) in zip(axes, columns):
-        ax.bar(policies, pushback_df[column], color=_policy_colors(policies))
+        ax.bar(labels, pushback_df[column], color=_policy_colors(policies))
         ax.set_title(title)
         ax.tick_params(axis="x", rotation=12)
         _apply_axis_style(ax)
@@ -204,8 +214,9 @@ def save_reproduction_dashboard(
     _apply_axis_style(axes[0, 1])
 
     policies = pushback_df["policy"].tolist()
+    labels = _policy_labels(policies)
     axes[1, 0].bar(
-        policies,
+        labels,
         pushback_df["attack_bytes_reaching_victim"],
         color=_policy_colors(policies),
     )
@@ -215,7 +226,7 @@ def save_reproduction_dashboard(
     _apply_axis_style(axes[1, 0])
 
     axes[1, 1].bar(
-        policies,
+        labels,
         pushback_df["benign_bytes_reaching_victim"],
         color=_policy_colors(policies),
     )
@@ -237,9 +248,9 @@ def write_summary(metrics_df: pd.DataFrame, threshold_df: pd.DataFrame, pushback
     reduction = 100.0 * (dt_thresholds - dt_cts_thresholds) / max(dt_thresholds, 1)
 
     no_push = pushback_df.loc[pushback_df["policy"] == "no_pushback"].iloc[0]
-    gated = pushback_df.loc[pushback_df["policy"] == "gated_pushback"].iloc[0]
+    hierarchical = pushback_df.loc[pushback_df["policy"] == "hierarchical_confidence_pushback"].iloc[0]
     attack_reduction = 100.0 * (
-        no_push["attack_bytes_reaching_victim"] - gated["attack_bytes_reaching_victim"]
+        no_push["attack_bytes_reaching_victim"] - hierarchical["attack_bytes_reaching_victim"]
     ) / max(no_push["attack_bytes_reaching_victim"], 1)
 
     dataset_source = (OUTPUT / "dataset_source.txt").read_text(encoding="utf-8").strip()
@@ -260,15 +271,18 @@ def write_summary(metrics_df: pd.DataFrame, threshold_df: pd.DataFrame, pushback
         f"- `DT-CTS` total thresholds: `{dt_cts_thresholds}`",
         f"- Threshold reduction vs DT: `{reduction:.2f}%`",
         "",
-        "## Pushback simulation",
+        "## Hierarchical Confidence-Aware Pushback",
         f"- Attack bytes reaching victim without pushback: `{no_push['attack_bytes_reaching_victim']:.0f}`",
-        f"- Attack bytes reaching victim with gated pushback: `{gated['attack_bytes_reaching_victim']:.0f}`",
-        f"- Attack-byte reduction from the small improvement: `{attack_reduction:.2f}%`",
-        f"- Benign bytes preserved with gated pushback: `{gated['benign_bytes_reaching_victim']:.0f}`",
-        f"- False block events with gated pushback: `{int(gated['false_block_events'])}`",
+        f"- Attack bytes reaching victim with hierarchical confidence-aware pushback: `{hierarchical['attack_bytes_reaching_victim']:.0f}`",
+        f"- Attack-byte reduction from the new mitigation design: `{attack_reduction:.2f}%`",
+        f"- Benign bytes preserved with hierarchical confidence-aware pushback: `{hierarchical['benign_bytes_reaching_victim']:.0f}`",
+        f"- False block events with hierarchical confidence-aware pushback: `{int(hierarchical['false_block_events'])}`",
+        f"- Local rate-limit events: `{int(hierarchical['local_rate_limit_events'])}`",
+        f"- Upstream pushback events: `{int(hierarchical['upstream_pushback_events'])}`",
+        f"- Hard block events: `{int(hierarchical['hard_block_events'])}`",
         "",
-        "## Small improvement beyond the paper",
-        "- This reduced reproduction adds `gated_pushback`: only trigger upstream blocking after two consecutive malicious detections.",
-        "- Goal: preserve more benign traffic than naive immediate pushback while still reducing attack traffic strongly.",
+        "## Improvement beyond the paper",
+        "- This reduced reproduction adds `hierarchical_confidence_pushback`: edge and core DT-CTS detectors accumulate a suspicion score before mitigation escalates.",
+        "- Goal: react in stages (`monitor -> local rate-limit -> upstream pushback -> hard block`) so benign bursts are less likely to be blocked too early.",
     ]
     (OUTPUT / "summary.md").write_text("\n".join(lines), encoding="utf-8")

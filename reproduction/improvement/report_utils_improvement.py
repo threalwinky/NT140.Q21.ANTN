@@ -9,16 +9,16 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-POLICY_ORDER = ["no_pushback", "immediate_pushback", "gated_pushback"]
+POLICY_ORDER = ["no_pushback", "immediate_pushback", "hierarchical_confidence_pushback"]
 POLICY_LABELS = {
     "no_pushback": "No pushback",
     "immediate_pushback": "Original\nimmediate",
-    "gated_pushback": "Improved\ngated",
+    "hierarchical_confidence_pushback": "Improved\nhierarchical",
 }
 POLICY_COLORS = {
     "no_pushback": "#9D755D",
     "immediate_pushback": "#E45756",
-    "gated_pushback": "#54A24B",
+    "hierarchical_confidence_pushback": "#54A24B",
 }
 
 
@@ -82,7 +82,7 @@ def save_teacher_policy_comparison(pushback_df: pd.DataFrame, out_path: Path) ->
         _apply_axis_style(ax)
         _annotate_bars(ax, values)
 
-    fig.suptitle("Original vs gated pushback comparison", fontsize=14, fontweight="bold")
+    fig.suptitle("Original vs hierarchical confidence-aware pushback", fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
@@ -101,7 +101,7 @@ def save_attack_timeline(pushback_detail: pd.DataFrame, out_path: Path) -> None:
             subset["attack_bytes_reaching_victim"],
             label=POLICY_LABELS.get(policy, policy).replace("\n", " "),
             color=POLICY_COLORS.get(policy, "#4C78A8"),
-            linewidth=3 if policy == "gated_pushback" else 2,
+            linewidth=3 if policy == "hierarchical_confidence_pushback" else 2,
         )
 
     ax.set_title("Attack bytes reaching victim over time", fontsize=13, fontweight="bold")
@@ -142,17 +142,18 @@ def save_improvement_dashboard(pushback_df: pd.DataFrame, comparison_df: pd.Data
     _apply_axis_style(axes[1, 0])
     _annotate_bars(axes[1, 0], false_values)
 
-    gated_row = comparison_df[comparison_df["policy"] == "gated_pushback"].iloc[0]
+    hierarchical_row = comparison_df[comparison_df["policy"] == "hierarchical_confidence_pushback"].iloc[0]
     immediate_row = comparison_df[comparison_df["policy"] == "immediate_pushback"].iloc[0]
     conclusion = (
         "Key conclusion\n\n"
         "Original/immediate pushback blocks a source after a single malicious prediction, "
         "so it suppresses attack traffic aggressively but can easily block benign traffic by mistake.\n\n"
-        "Gated pushback blocks only after two consecutive malicious predictions. "
-        f"In this run, gated still reduced attack bytes by {gated_row['attack_byte_reduction_vs_no_pushback_pct']:.2f}% "
+        "Hierarchical confidence-aware pushback escalates through monitoring, local rate-limiting, upstream pushback, "
+        "and finally hard blocking. "
+        f"In this run, the hierarchical policy still reduced attack bytes by {hierarchical_row['attack_byte_reduction_vs_no_pushback_pct']:.2f}% "
         "versus no pushback, while preserving more benign traffic than immediate pushback.\n\n"
         f"False blocks: immediate = {int(immediate_row['false_block_events'])}, "
-        f"gated = {int(gated_row['false_block_events'])}."
+        f"hierarchical = {int(hierarchical_row['false_block_events'])}."
     )
     axes[1, 1].axis("off")
     axes[1, 1].text(
@@ -166,7 +167,7 @@ def save_improvement_dashboard(pushback_df: pd.DataFrame, comparison_df: pd.Data
         bbox={"boxstyle": "round,pad=0.6", "facecolor": "#F5F7FA", "edgecolor": "#B0BEC5"},
     )
 
-    fig.suptitle("Gated Pushback Improvement Dashboard", fontsize=15, fontweight="bold")
+    fig.suptitle("Hierarchical Confidence-Aware Pushback Dashboard", fontsize=15, fontweight="bold")
     fig.tight_layout()
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)

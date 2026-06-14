@@ -3,7 +3,7 @@ import pandas as pd
 from benchmark_metrics import aggregate_benchmark_metrics
 from config import OUTPUT
 from data_pipeline import build_dataset
-from model_pipeline import classify_models
+from model_pipeline import classify_models, train_pushback_model_bundle
 from pushback_sim import generate_pushback_trace, simulate_pushback
 from report_utils import (
     save_bar_plot,
@@ -23,7 +23,16 @@ def main():
     df, dataset_source = build_dataset()
     (OUTPUT / "dataset_source.txt").write_text(dataset_source, encoding="utf-8")
 
-    metrics_df, threshold_df, trained_models, X_test, y_test, training_times, y_pred_dict = classify_models(df)
+    (
+        metrics_df,
+        threshold_df,
+        trained_models,
+        X_test,
+        y_test,
+        training_times,
+        y_pred_dict,
+        split_metadata,
+    ) = classify_models(df)
 
     metrics_df.to_csv(OUTPUT / "classification_metrics.csv", index=False)
     threshold_df.to_csv(OUTPUT / "threshold_metrics.csv", index=False)
@@ -49,12 +58,16 @@ def main():
     save_threshold_feature_plot(threshold_df, OUTPUT / "thresholds_by_feature.png")
 
     trace_df = generate_pushback_trace(df)
+    pushback_model_bundle = train_pushback_model_bundle(
+        df,
+        train_indices=split_metadata["train_indices"],
+        core_model=trained_models["DT-CTS"],
+    )
     policy_rows = []
     detail_frames = []
-    push_model = trained_models["DT-CTS"]
 
-    for policy in ["no_pushback", "immediate_pushback", "gated_pushback"]:
-        detail_df, summary = simulate_pushback(push_model, trace_df, policy)
+    for policy in ["no_pushback", "immediate_pushback", "hierarchical_confidence_pushback"]:
+        detail_df, summary = simulate_pushback(pushback_model_bundle, trace_df, policy)
         detail_frames.append(detail_df)
         policy_rows.append(summary)
 

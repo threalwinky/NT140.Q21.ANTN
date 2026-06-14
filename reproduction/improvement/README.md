@@ -1,62 +1,65 @@
-# Gated Pushback Improvement
+# Hierarchical Confidence-Aware Pushback
 
-Thư mục này chứa riêng phần cải tiến `gated_pushback` để so sánh với cơ chế pushback gốc/paper-like trong reproduction.
+This directory contains the dedicated improvement experiment for the project.
 
-Kết quả ở đây không ghi đè thư mục `../output` của reproduction gốc. Tất cả output được ghi vào:
+## Why this is stronger than a fixed gate
 
-```text
-reproduction/improvement/output
-```
+The previous fixed-gate idea only changed the blocking rule from:
 
-## Ý tưởng chính
+- block after one malicious detection
 
-Trong mô phỏng gốc, `immediate_pushback` sẽ block source ngay sau một lần flow bị dự đoán là malicious. Cách này giảm attack rất nhanh nhưng dễ chặn nhầm benign traffic nếu model false positive.
+to:
 
-Cải tiến `gated_pushback` chỉ block source sau 2 lần malicious liên tiếp:
+- block after two malicious detections in a row
 
-```text
-Lần 1 bị nghi ngờ attack  -> ghi nhận, chưa block
-Lần 2 liên tiếp vẫn attack -> mới block source upstream
-```
+That helped reduce false blocks, but it was still a small policy tweak.
 
-Mục tiêu là giảm false block và giữ benign traffic tốt hơn, trong khi vẫn giảm mạnh attack traffic tới victim.
+The new `Hierarchical Confidence-Aware Pushback` is stronger because it changes the mitigation logic at the system level:
 
-## Chạy thí nghiệm cải tiến
+- `edge DT-CTS` detects early
+- `core DT-CTS` confirms more carefully
+- each source gets a `suspicion score`
+- mitigation escalates through:
+  - `monitor`
+  - `local rate-limit`
+  - `upstream pushback`
+  - `hard block`
 
-Từ project root:
+## Run the experiment
+
+From the project root:
 
 ```bash
-python3 reproduction/improvement/run_gated_improvement.py
+python3 reproduction/improvement/run_hierarchical_improvement.py
 ```
 
-Hoặc từ thư mục này:
+Or from this directory:
 
 ```bash
 cd reproduction/improvement
-python3 run_gated_improvement.py
+python3 run_hierarchical_improvement.py
 ```
 
-## Output quan trọng
+## Important Outputs
 
-Sau khi chạy, mở các file sau trong `output/`:
+After running, the key files are:
 
-- `TEACHER_SUMMARY.md`: tóm tắt tiếng Việt để báo cáo.
-- `gated_improvement_dashboard.png`: dashboard chính nên show cho thầy.
-- `teacher_policy_comparison.png`: biểu đồ so sánh no pushback, immediate, gated.
-- `teacher_attack_timeline.png`: attack bytes tới victim theo thời gian.
-- `teacher_comparison_table.csv`: bảng số liệu chi tiết.
-- `improvement_pushback_metrics.csv`: metric pushback raw.
-- `improvement_pushback_detail.csv`: log mô phỏng theo từng source/time window.
+- `output/TEACHER_SUMMARY.md`
+- `output/teacher_comparison_table.csv`
+- `output/teacher_policy_comparison.png`
+- `output/teacher_attack_timeline.png`
+- `output/hierarchical_improvement_dashboard.png`
+- `output/improvement_pushback_metrics.csv`
+- `output/improvement_pushback_detail.csv`
 
-## Cách đọc kết quả
+## How to read the policies
 
-- `no_pushback`: baseline, không chặn upstream nên attack tới victim nhiều nhất.
-- `immediate_pushback`: đại diện hành vi gốc/paper-like trong reproduction, block ngay sau 1 lần phát hiện malicious.
-- `gated_pushback`: cải tiến, chỉ block sau 2 lần malicious liên tiếp.
+- `no_pushback`: baseline, no upstream mitigation
+- `immediate_pushback`: original paper-like behavior, block immediately after one malicious decision
+- `hierarchical_confidence_pushback`: improved behavior with accumulated confidence and staged response
 
-Điểm cần nhấn mạnh khi báo cáo:
+## What to emphasize in the report
 
-```text
-Immediate pushback chặn attack mạnh nhất nhưng false block cao.
-Gated pushback vẫn giảm attack rất mạnh, đồng thời giảm chặn nhầm và giữ benign traffic tốt hơn.
-```
+- `immediate_pushback` can suppress attack traffic very aggressively, but it is also the easiest one to over-block.
+- `hierarchical_confidence_pushback` is more realistic as a system improvement because it does not jump straight to hard blocking.
+- The improvement should be presented as a coordination and mitigation redesign, not just as a threshold tweak.
